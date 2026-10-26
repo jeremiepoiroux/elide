@@ -1,0 +1,17 @@
+.DS_Store
+.claude/
+
+# Old Python NER servers (no longer needed — app runs fully local)
+camembert_ner.py
+spacy_ner.py
+start_camembert.command
+start_spacy.command
+
+# Local only
+__pycache__/
+start.command
+# Pages deploys from the main branch: this Actions workflow is not used
+.github/
+# Private working notes (only the schema and its example are published)
+corpus-schema/PROMPTS.md
+corpus-schema/ANALYSIS-TOOL.md

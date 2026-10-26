@@ -53,6 +53,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .view.hidden { display: none; }
 .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px;
   border-bottom: 1px solid var(--border); background: var(--surf); flex-shrink: 0; min-height: 52px; }
+#v-project .topbar { flex-wrap: wrap; row-gap: 6px; }
 .topbar-title { font-weight: 700; font-size: 1rem; letter-spacing: -.01em; }
 .topbar-sub { color: var(--muted); font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
 .spacer { flex: 1; }
@@ -180,6 +181,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .seg-spk { font-weight: 700; font-size: .82rem; color: var(--muted); font-family: ui-monospace, monospace; letter-spacing:.02em; }
 .seg-ts  { font-size: .72rem; color: var(--faint); }
 .seg-body { font-size: var(--seg-fs, 1rem); line-height: 1.8; }
+/* ── spreadsheet view ── */
+.tbl-tools { display:flex; gap:8px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border);
+  position:sticky; top:0; background:var(--bg); z-index:2; }
+.tbl-tools .input { width:auto; }
+#tbl-search { flex:1; min-width:140px; }
+.tbl-count { font-size:.75rem; color:var(--muted); white-space:nowrap; }
+.tbl-wrap { overflow-x:auto; }
+.tbl { border-collapse:collapse; width:100%; }
+.tbl th { text-align:left; font-size:.75rem; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--border);
+  cursor:pointer; white-space:nowrap; user-select:none; }
+.tbl td { padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; font-size:.85rem; }
+.tbl td.seg { display:table-cell; min-width:260px; padding:6px 8px; }
+.tbl td.seg .seg-body { white-space:pre-wrap; line-height:1.6; }
+.tbl td.tbl-keep { color:var(--muted); min-width:70px; outline:none; cursor:text; }
+.tbl td.tbl-keep:focus { background:var(--surf2); color:var(--text); }
+.tbl-del { opacity:.35; } .tbl tr:hover .tbl-del { opacity:1; }
 .seg-body.loading { color: var(--faint); font-style: italic; }
 .seg-body ::selection { background: #fbbf2480; }
 .hint-proper       { background: #fef08a; border-radius: 2px; cursor: pointer; }
@@ -255,6 +272,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 #popover .pop-restore { font-size: .82rem; font-weight: 600; color: var(--ok); cursor: pointer; padding: 4px 0; }
 #popover .pop-restore:hover { text-decoration: underline; }
 #popover .pop-restore-all { color: var(--err); }
+.pop-validate { font-size: .82rem; font-weight: 600; color: var(--accent); cursor: pointer; padding: 4px 0 0; }
+.pop-validate:hover { text-decoration: underline; }
+/* Tag placed automatically on a variant or a homonym — needs a human look */
+.tag-review { outline: 1.5px dashed currentColor; outline-offset: 1px; }
+/* Homonym left in clear — the user decides per occurrence */
+.hint-ambiguous { background: rgba(245,158,11,.18); border-bottom: 2px dashed #f59e0b; border-radius: 2px; cursor: pointer; }
+.review-btn { color: #b45309; border-color: #f59e0b; padding: 2px 8px; font-size: .74rem; }
 #popover hr { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
 #popover .pop-change-label { font-size: .72rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
 #popover .pop-tags { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -326,8 +350,8 @@ code { font-family: ui-monospace, 'SF Mono', monospace; font-size: .85em;
         <div class="home-feat">
           <span class="home-feat-icon">📄</span>
           <div class="home-feat-text">
-            <strong data-i18n="home_feat4_title">Export .txt · .docx · .pdf</strong>
-            <span data-i18n="home_feat4_desc">Exportez la version anonymisée dans le format de votre choix.</span>
+            <strong data-i18n="home_feat4_title">Export .txt · .docx · .pdf · .xlsx · .csv</strong>
+            <span data-i18n="home_feat4_desc">Exportez la version anonymisée dans le format de votre choix, y compris vos tableurs de citations.</span>
           </div>
         </div>
       </div>
@@ -375,16 +399,17 @@ code { font-family: ui-monospace, 'SF Mono', monospace; font-size: .85em;
     <span id="proj-file-status" style="font-size:.72rem;color:var(--muted);display:none"></span>
     <button id="proj-link-file-btn" class="btn btn-sm btn-ghost" onclick="linkProjectFile(state.currentProjectId)" style="display:none">⊕ <span data-i18n="linkFile">Lier un fichier</span></button>
     <button class="btn btn-sm btn-ghost" onclick="exportProjectJson(state.currentProjectId)">↓ <span data-i18n="exportJsonBtn">Exporter JSON</span></button>
+    <button class="btn btn-sm btn-ghost" onclick="exportAnalysisBundle(state.currentProjectId)" title=".corpus.json — documents validés, texte anonymisé uniquement, pour l'outil d'analyse">↓ <span data-i18n="exportAnalysisBtn">Pour analyse</span></button>
     <button class="btn btn-primary btn-sm" onclick="triggerImport()">+ <span data-i18n="importDoc">Import document</span></button>
-    <input type="file" id="file-input" hidden accept=".json,.txt,.docx">
+    <input type="file" id="file-input" hidden multiple accept=".json,.txt,.md,.docx,.csv,.xlsx,.xls">
   </div>
   <div class="scroll">
     <div id="doc-empty" class="empty-state" style="margin-top:40px">
       <h3 data-i18n="noDocsTitle">No documents yet</h3>
-      <p style="font-size:.85rem;margin-top:4px;color:var(--muted)" data-i18n="noDocsHint">Import .rescribe.json, .txt or .docx files.</p>
+      <p style="font-size:.85rem;margin-top:4px;color:var(--muted)" data-i18n="noDocsHint">Import interviews, notes or spreadsheets.</p>
       <div class="drop-zone" id="drop-zone-proj" style="margin-top:20px;max-width:400px;margin-left:auto;margin-right:auto" onclick="triggerImport()">
         <p data-i18n="dropZone">Drop files here or click to browse</p>
-        <small>.rescribe.json · .txt · .docx</small>
+        <small>.rescribe.json · .corpus.json · .txt · .md · .docx · .csv · .xlsx · .xls</small>
       </div>
     </div>
     <div id="doc-list"></div>
@@ -411,7 +436,7 @@ code { font-family: ui-monospace, 'SF Mono', monospace; font-size: .85em;
       </div>
     </div>
     <div id="ed-progress-label" style="font-size:.78rem;color:var(--muted)"></div>
-    <button class="btn-validate" id="ed-validate-btn" style="display:none" onclick="validateDoc(state.currentDocId).then(()=>navigate('project'))"></button>
+    <button class="btn-validate" id="ed-validate-btn" style="display:none" onclick="validateDoc(state.currentDocId).then(ok=>{ if (ok) navigate('project'); })"></button>
     <div style="display:flex;align-items:center;gap:2px">
       <button class="btn btn-icon btn-ghost" style="font-size:.9rem;width:26px;height:26px;padding:0;line-height:1" onclick="adjustFontSize(-0.1)" title="Diminuer le texte">A−</button>
       <button class="btn btn-icon btn-ghost" style="font-size:.9rem;width:26px;height:26px;padding:0;line-height:1" onclick="adjustFontSize(0.1)" title="Agrandir le texte">A+</button>
@@ -420,13 +445,18 @@ code { font-family: ui-monospace, 'SF Mono', monospace; font-size: .85em;
       <button class="btn btn-icon btn-ghost" style="width:26px;height:26px;padding:0;font-size:1rem;line-height:1" onclick="navTag(-1)" title="Tag précédent">◀</button>
       <span id="ed-tag-counter" style="font-size:.72rem;color:var(--muted);min-width:42px;text-align:center">—</span>
       <button class="btn btn-icon btn-ghost" style="width:26px;height:26px;padding:0;font-size:1rem;line-height:1" onclick="navTag(1)" title="Tag suivant">▶</button>
+      <button id="ed-review-btn" class="btn btn-sm review-btn" style="display:none" onclick="navReview()" title="Tags à vérifier — aller au suivant">⚑ <span id="ed-review-count">0</span></button>
     </div>
     <div style="position:relative;display:inline-block">
-      <button class="btn btn-primary btn-sm" onclick="document.getElementById('export-menu').classList.toggle('hidden')">↓ <span data-i18n="exportBtn">Exporter</span></button>
-      <div id="export-menu" class="hidden" style="position:absolute;right:0;top:110%;background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-s);min-width:160px;z-index:200;box-shadow:var(--shadow)">
+      <button class="btn btn-primary btn-sm" onclick="toggleExportMenu()">↓ <span data-i18n="exportBtn">Exporter</span></button>
+      <div id="export-menu" class="hidden" style="position:absolute;right:0;top:110%;background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-s);min-width:220px;z-index:200;box-shadow:var(--shadow)">
         <div class="export-opt" onclick="exportTxt();document.getElementById('export-menu').classList.add('hidden')">📄 <span data-i18n="exportOptTxt">.txt — texte brut</span></div>
         <div class="export-opt" onclick="exportPdf();document.getElementById('export-menu').classList.add('hidden')">🖨 <span data-i18n="exportOptPdf">.pdf — via impression</span></div>
         <div class="export-opt" onclick="exportDocx();document.getElementById('export-menu').classList.add('hidden')">📝 <span data-i18n="exportOptDocx">.docx — Word</span></div>
+        <div class="export-opt tbl-only" style="display:none" onclick="exportTable('xlsx');document.getElementById('export-menu').classList.add('hidden')">📊 <span data-i18n="exportOptXlsx">.xlsx — tableur</span></div>
+        <div class="export-opt tbl-only" style="display:none" onclick="exportTable('xls');document.getElementById('export-menu').classList.add('hidden')">📊 <span data-i18n="exportOptXls">.xls — Excel 97-2003</span></div>
+        <div class="export-opt tbl-only" style="display:none" onclick="exportTable('csv');document.getElementById('export-menu').classList.add('hidden')">📑 <span data-i18n="exportOptCsv">.csv — texte séparé</span></div>
+        <div class="export-opt wb-only" style="display:none" onclick="exportWorkbook();document.getElementById('export-menu').classList.add('hidden')">📚 <span data-i18n="exportOptWorkbook">Classeur complet (.xlsx)</span></div>
       </div>
     </div>
   </div>
@@ -445,7 +475,7 @@ code { font-family: ui-monospace, 'SF Mono', monospace; font-size: .85em;
 <!-- ═══════════════════════════════════════════════════════ TAG PICKER -->
 <div id="tag-picker" class="hidden">
   <div class="tp-header">
-    <span class="tp-word"><span data-i18n="tpTag">Baliser</span> <em id="tp-word-em"></em></span>
+    <span class="tp-word" data-i18n="tpTag">Baliser</span>
     <button class="tp-close" onclick="hideTagPicker()">✕</button>
   </div>
   <div id="tp-dismiss-row" class="hidden" style="border-bottom:1px solid var(--border);padding:5px 8px">
@@ -456,8 +486,9 @@ code { font-family: ui-monospace, 'SF Mono', monospace; font-size: .85em;
   <div class="tp-search-row">
     <input type="text" id="tp-search-input" placeholder="🔍 Rechercher un tag…" oninput="filterTagPicker(this.value)" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
   </div>
+  <div id="tp-redact-top" style="display:none;padding:4px 8px 2px;border-bottom:1px solid var(--border)"></div>
   <div class="tp-body" id="tp-body"></div>
-  <div class="tp-redact-row" id="tp-redact-row"></div>
+  <div class="tp-redact-row" id="tp-redact-row" style="display:none"></div>
   <div class="tp-custom-row">
     <input type="text" id="tp-custom-input" data-i18n-placeholder="tpCustomPh" placeholder="Tag personnalisé…" onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();pickCustomTag()}">
     <button class="btn btn-sm" onclick="pickCustomTag()" data-i18n="tpCreate">Créer</button>
@@ -473,6 +504,7 @@ code { font-family: ui-monospace, 'SF Mono', monospace; font-size: .85em;
     <div class="pop-restore pop-restore-all" onclick="restoreBalise(true)">✕ <span data-i18n="restoreAll">Ce doc</span></div>
     <div class="pop-restore pop-restore-all" onclick="restoreBalise('project')" style="opacity:.8">✕ <span data-i18n="restoreProject">Tout le projet</span></div>
   </div>
+  <div id="pop-validate" class="pop-validate" onclick="validateTok()" style="display:none">✓ <span data-i18n="validateTag">Valider ce tag</span></div>
   <hr>
   <div class="pop-change-label" data-i18n="changeTag">Change tag:</div>
   <div class="pop-tags" id="pop-tags"></div>
@@ -486,7 +518,11 @@ code { font-family: ui-monospace, 'SF Mono', monospace; font-size: .85em;
     <button class="btn btn-sm btn-primary" onclick="renamePseudo()" data-i18n="tpPseudoBtn">Appliquer</button>
   </div>
   <hr>
-  <div class="pseudo-pop-restore" onclick="restorePseudo()">✕ <span data-i18n="restore">Restaurer l'original</span></div>
+  <div style="display:flex;gap:12px">
+    <div class="pseudo-pop-restore" onclick="restorePseudo(false)">✕ <span data-i18n="restoreOne">Cette occurrence</span></div>
+    <div class="pseudo-pop-restore" style="color:var(--err)" onclick="restorePseudo(true)">✕ <span data-i18n="restoreAll">Ce doc</span></div>
+  </div>
+  <div id="pseudo-pop-validate" class="pop-validate" onclick="validateTok()" style="display:none">✓ <span data-i18n="validateTag">Valider ce tag</span></div>
 </div>
 
 <div id="tag-tooltip" class="hidden"></div>
@@ -507,7 +543,7 @@ code { font-family: ui-monospace, 'SF Mono', monospace; font-size: .85em;
 // ════════════════════════════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════════════════════════════
-const VERSION = '0.1.0';
+const VERSION = '0.3.4';
 const OLLAMA = 'http://localhost:11434';
 const DB_NAME = 'elide_db', DB_VER = 1;
 
@@ -536,6 +572,20 @@ function tagCls(id) {
   return TAG_CLS[base] || 'tag-spk';
 }
 
+// Display label for a tag ID, localized by docLang
+const TAG_DISPLAY_ID = {
+  en: { PERS:'PERSON', LIEU:'PLACE', ORG:'ORG', REF:'REF', DATE:'DATE', CAVIARDÉ:'REDACTED', CAVIARDE:'REDACTED' },
+  de: { PERS:'PERS', LIEU:'ORT', ORG:'ORG', REF:'REF', DATE:'DATUM', CAVIARDÉ:'GESCHWÄRZT', CAVIARDE:'GESCHWÄRZT' },
+};
+function tagDisplayId(id) {
+  const map = TAG_DISPLAY_ID[_currentDocLang];
+  if (!map) return id;
+  const base = id.replace(/_\d+$/, '');
+  const num = id.match(/_(\d+)$/)?.[1];
+  const disp = map[base] || base;
+  return num ? `${disp}_${num}` : disp;
+}
+
 // ════════════════════════════════════════════════════════════════════
 // i18n
 // ════════════════════════════════════════════════════════════════════
@@ -546,13 +596,13 @@ const STR = {
     home_feat1_title:'100 % local & privé', home_feat1_desc:'Vos données restent dans votre navigateur (IndexedDB). Rien n\'est envoyé à un serveur.',
     home_feat2_title:'Annotation manuelle guidée', home_feat2_desc:'Sélectionnez un mot, choisissez une balise (PERS, LIEU, ORG…), propagation automatique.',
     home_feat3_title:'Détection des noms propres', home_feat3_desc:'Prénoms, noms, villes (FR/DE/EN) surlignés automatiquement pour vous guider.',
-    home_feat4_title:'Export .txt · .docx · .pdf', home_feat4_desc:'Exportez la version anonymisée dans le format de votre choix.',
+    home_feat4_title:'Export .txt · .docx · .pdf · .xlsx · .csv', home_feat4_desc:'Exportez la version anonymisée dans le format de votre choix, y compris vos tableurs de citations.',
     home_create:'Créer mon premier projet', home_privacy:'Elide fonctionne entièrement dans votre navigateur. Aucun compte, aucun serveur, aucune donnée transmise.',
     startTitle:'⚡', startSteps:'Double-cliquer sur <strong>start.command</strong> pour ouvrir — aucun serveur requis.',
     // projects
     newProject:'Nouveau projet', importDoc:'Importer', noProjects:'Aucun projet',
     noProjectsHint:'Créez un projet pour commencer à anonymiser vos entretiens.',
-    noDocsTitle:'Aucun document', noDocsHint:'Importez des fichiers .rescribe.json, .txt ou .docx.',
+    noDocsTitle:'Aucun document', noDocsHint:'Importez des entretiens, des notes ou des tableurs de citations.',
     dropZone:'Déposez vos fichiers ici ou cliquez pour parcourir',
     // editor
     original:'Original', anonymized:'Anonymisé', selectHint:'Sélectionner → ajouter une balise',
@@ -560,6 +610,82 @@ const STR = {
     tpTag:'Baliser', tpCustomPh:'Tag personnalisé…', tpCreate:'Créer', customTags:'Tags perso', undoHint:'⌘Z / Ctrl+Z pour annuler',
     tpPseudoLabel:'Pseudonyme', tpPseudoPh:'pseudonyme', tpPseudoBtn:'Appliquer',
     dismissHint:'Retirer la surbrillance (toutes les occurrences)',
+    langMulti:"Multilingue",
+    kindLabel:"Type de document",
+    kind_interview:"Entretien",
+    kind_fieldnote:"Note de terrain",
+    kind_meeting:"Compte rendu de réunion",
+    kind_other:"Autre",
+    importCorpusTitle:"Importer un corpus",
+    noDocsToImport:"Aucun document importable dans ce fichier.",
+    importSkipped:"Ignorés",
+    bundleImportIntro:"{n} document(s) à importer — vérifiez titre et type :",
+    skip_invalid:"format non reconnu",
+    skip_reference:"référence bibliographique (rien à anonymiser)",
+    skip_notRaw:"déjà anonymisé ou public",
+    skip_empty:"aucun segment",
+    skip_duplicate:"déjà présent dans le projet",
+    speakerTag:"nom de locuteur",
+    status_pending:"pas encore anonymisé",
+    status_working:"anonymisation en cours",
+    status_done:"non validé",
+    status_editing:"non validé (en cours d’édition)",
+    status_error:"erreur d’anonymisation",
+    excludedReview:"validé mais {n} tag(s) à vérifier (⚑)",
+    exportAnalysisBtn:"Pour analyse",
+    exportAnalysisTitle:"Export pour analyse",
+    exportNoneValidated:"Aucun document validé : rien à exporter. Validez d’abord vos documents (« Marquer anonymisé »).",
+    exportExcluded:"Documents non exportés",
+    exportDone:"{n} document(s) exporté(s), texte anonymisé uniquement.",
+    exportBlockedTitle:"Export bloqué : données identifiantes détectées",
+    exportBlockedIntro:"Ces valeurs réelles apparaissent encore dans ce qui serait exporté. Corrigez-les dans l’éditeur, puis relancez l’export.",
+    exportAnyway:"Exporter quand même",
+    selectAll:"Tout cocher",
+    exportAnywayIntro:"Si une occurrence n’est pas identifiante (lieu cité sans lien avec la personne, homonyme…), cochez-la puis « Exporter quand même ». Les occurrences du texte sont mémorisées comme laissées en clair.",
+    columnLabel:"Colonne",
+    columnsLabel:"Colonnes",
+    roleLabel:"Rôle",
+    exampleLabel:"Exemple",
+    rowsLabel:"lignes",
+    colRole_text:"Texte à anonymiser",
+    colRole_speaker:"Participant / locuteur",
+    colRole_keep:"Garder tel quel",
+    colRole_skip:"Ne pas importer",
+    sheetImportTitle:"Importer un tableur",
+    importThisSheet:"Importer la feuille",
+    needTextColumn:"Choisissez au moins une colonne « Texte à anonymiser ».",
+    noRowsToImport:"Aucune ligne exploitable dans ce fichier.",
+    tableSearch:"Rechercher…",
+    allColumns:"Toutes les colonnes",
+    deleteRow:"Supprimer la ligne (Cmd+Z pour annuler)",
+    exportOptXlsx:".xlsx — tableur",
+    exportOptXls:".xls — Excel 97-2003",
+    exportOptCsv:".csv — texte séparé",
+    exportOptWorkbook:"Classeur complet (.xlsx)",
+    workbookNotReadyTitle:"Feuilles non validées",
+    workbookNotReadyIntro:"Ces feuilles du classeur ne sont pas encore validées (« Marquer anonymisé ») : elles peuvent contenir du texte non anonymisé. Validez-les, ou exportez quand même le classeur complet.",
+    workbookExported:"Classeur exporté : {n} feuille(s).",
+    kind_codingTable:"Tableau de codage",
+    kind_quoteList:"Liste de citations",
+    colName_number:"N°",
+    colName_time:"Temps",
+    colName_code:"Code",
+    colName_quote:"Citation",
+    colName_section:"Section",
+    exportBadKeys:"Champs internes interdits détectés :",
+    exportKeptTitle:"Occurrences laissées en clair",
+    exportKeptIntro:"Ces mots de la banque d’entités ont été volontairement laissés en clair. Cochez chacun pour confirmer que ce n’est pas la personne / le lieu anonymisé (mémorisé).",
+    exportKeptConfirm:"Confirmer et exporter",
+    openDoc:"Ouvrir",
+    projectLabel:"Projet",
+    docLabel:"Document",
+    segmentLabel:"Segment / champ",
+    foundLabel:"Trouvé",
+    expectedTag:"Balise attendue",
+    validateBlockedReview:"Validation impossible : {n} tag(s) à vérifier (⚑) restent dans ce document.",
+    keepClear:'Laisser en clair (cette occurrence)',
+    validateTag:'Valider ce tag',
+    homonymToast:'« {w} » a maintenant plusieurs tags : plus de propagation automatique, les tags automatiques sont à vérifier (⚑)',
     scanning:'Analyse des noms propres…', autosaved:'Enregistré',
     legendPerson:'Prénom dans la base → cliquer pour baliser', legendPlace:'Lieu dans la base → cliquer pour baliser', legendProper:'Majuscule non référencée → vérifier si nom propre',
     loadingIndex:'Chargement de la base de noms…',
@@ -594,13 +720,13 @@ const STR = {
     home_feat1_title:'100% local & private', home_feat1_desc:'Your data stays in your browser (IndexedDB). Nothing is sent to any server.',
     home_feat2_title:'Guided manual annotation', home_feat2_desc:'Select a word, choose a tag (PERS, LIEU, ORG…), automatic propagation.',
     home_feat3_title:'Proper noun detection', home_feat3_desc:'First names, last names, cities (FR/DE/EN) highlighted automatically to guide you.',
-    home_feat4_title:'Export .txt · .docx · .pdf', home_feat4_desc:'Export the anonymized version in the format of your choice.',
+    home_feat4_title:'Export .txt · .docx · .pdf · .xlsx · .csv', home_feat4_desc:'Export the anonymized version in the format of your choice, spreadsheets of quotes included.',
     home_create:'Create my first project', home_privacy:'Elide runs entirely in your browser. No account, no server, no data transmitted.',
     startTitle:'⚡', startSteps:'Double-click <strong>start.command</strong> to open — no server required.',
     // projects
     newProject:'New project', importDoc:'Import', noProjects:'No projects yet',
     noProjectsHint:'Create a project to start anonymizing interviews.',
-    noDocsTitle:'No documents yet', noDocsHint:'Import .rescribe.json, .txt or .docx files.',
+    noDocsTitle:'No documents yet', noDocsHint:'Import interviews, notes or spreadsheets of quotes.',
     dropZone:'Drop files here or click to browse',
     // editor
     original:'Original', anonymized:'Anonymized', selectHint:'Select text → add tag',
@@ -608,6 +734,82 @@ const STR = {
     tpTag:'Tag', tpCustomPh:'Custom tag…', tpCreate:'Create', customTags:'Custom tags', undoHint:'⌘Z / Ctrl+Z to undo',
     tpPseudoLabel:'Pseudonym', tpPseudoPh:'pseudonym', tpPseudoBtn:'Apply',
     dismissHint:'Remove highlight (all occurrences)',
+    langMulti:"Multilingual",
+    kindLabel:"Document type",
+    kind_interview:"Interview",
+    kind_fieldnote:"Field note",
+    kind_meeting:"Meeting notes",
+    kind_other:"Other",
+    importCorpusTitle:"Import a corpus",
+    noDocsToImport:"No importable document in this file.",
+    importSkipped:"Skipped",
+    bundleImportIntro:"{n} document(s) to import — check title and type:",
+    skip_invalid:"unrecognised format",
+    skip_reference:"bibliographic reference (nothing to anonymize)",
+    skip_notRaw:"already anonymized or public",
+    skip_empty:"no segment",
+    skip_duplicate:"already in this project",
+    speakerTag:"speaker name",
+    status_pending:"not anonymized yet",
+    status_working:"anonymization running",
+    status_done:"not validated",
+    status_editing:"not validated (being edited)",
+    status_error:"anonymization error",
+    excludedReview:"validated but {n} tag(s) to review (⚑)",
+    exportAnalysisBtn:"For analysis",
+    exportAnalysisTitle:"Export for analysis",
+    exportNoneValidated:"No validated document: nothing to export. Validate your documents first (“Mark as anonymized”).",
+    exportExcluded:"Documents not exported",
+    exportDone:"{n} document(s) exported, anonymized text only.",
+    exportBlockedTitle:"Export blocked: identifying data found",
+    exportBlockedIntro:"These real values still appear in what would be exported. Fix them in the editor, then export again.",
+    exportAnyway:"Export anyway",
+    selectAll:"Select all",
+    exportAnywayIntro:"If an occurrence is not identifying (a place mentioned without link to the person, a homonym…), tick it, then “Export anyway”. Occurrences in the text are remembered as kept as is.",
+    columnLabel:"Column",
+    columnsLabel:"Columns",
+    roleLabel:"Role",
+    exampleLabel:"Example",
+    rowsLabel:"rows",
+    colRole_text:"Text to anonymize",
+    colRole_speaker:"Participant / speaker",
+    colRole_keep:"Keep as is",
+    colRole_skip:"Do not import",
+    sheetImportTitle:"Import a spreadsheet",
+    importThisSheet:"Import sheet",
+    needTextColumn:"Choose at least one “Text to anonymize” column.",
+    noRowsToImport:"No usable row in this file.",
+    tableSearch:"Search…",
+    allColumns:"All columns",
+    deleteRow:"Delete row (Cmd+Z to undo)",
+    exportOptXlsx:".xlsx — spreadsheet",
+    exportOptXls:".xls — Excel 97-2003",
+    exportOptCsv:".csv — delimited text",
+    exportOptWorkbook:"Whole workbook (.xlsx)",
+    workbookNotReadyTitle:"Sheets not validated",
+    workbookNotReadyIntro:"These sheets of the workbook are not validated yet (“Mark as anonymized”): they may contain text that is not anonymized. Validate them, or export the whole workbook anyway.",
+    workbookExported:"Workbook exported: {n} sheet(s).",
+    kind_codingTable:"Coding table",
+    kind_quoteList:"Quote list",
+    colName_number:"No.",
+    colName_time:"Time",
+    colName_code:"Code",
+    colName_quote:"Quote",
+    colName_section:"Section",
+    exportBadKeys:"Forbidden internal fields found:",
+    exportKeptTitle:"Occurrences kept as is",
+    exportKeptIntro:"These entity-bank words were deliberately kept as is. Tick each one to confirm it is not the anonymized person / place (remembered).",
+    exportKeptConfirm:"Confirm and export",
+    openDoc:"Open",
+    projectLabel:"Project",
+    docLabel:"Document",
+    segmentLabel:"Segment / field",
+    foundLabel:"Found",
+    expectedTag:"Expected tag",
+    validateBlockedReview:"Cannot validate: {n} tag(s) to review (⚑) remain in this document.",
+    keepClear:'Keep as is (this occurrence)',
+    validateTag:'Confirm this tag',
+    homonymToast:'"{w}" now has several tags: automatic propagation stopped, automatic tags need review (⚑)',
     scanning:'Scanning proper nouns…', autosaved:'Saved',
     legendPerson:'First name in database → click to tag', legendPlace:'Place in database → click to tag', legendProper:'Capitalized word not in database → check if proper noun',
     loadingIndex:'Loading name database…',
@@ -642,13 +844,13 @@ const STR = {
     home_feat1_title:'100 % lokal & privat', home_feat1_desc:'Ihre Daten bleiben in Ihrem Browser (IndexedDB). Nichts wird an einen Server gesendet.',
     home_feat2_title:'Geführte manuelle Annotation', home_feat2_desc:'Wort auswählen, Tag wählen (PERS, LIEU, ORG…), automatische Weitergabe.',
     home_feat3_title:'Erkennung von Eigennamen', home_feat3_desc:'Vornamen, Nachnamen, Städte (FR/DE/EN) werden automatisch hervorgehoben.',
-    home_feat4_title:'Export .txt · .docx · .pdf', home_feat4_desc:'Exportieren Sie die anonymisierte Version im Format Ihrer Wahl.',
+    home_feat4_title:'Export .txt · .docx · .pdf · .xlsx · .csv', home_feat4_desc:'Exportieren Sie die anonymisierte Version im Format Ihrer Wahl, auch Zitattabellen.',
     home_create:'Erstes Projekt erstellen', home_privacy:'Elide läuft vollständig in Ihrem Browser. Kein Konto, kein Server, keine Daten übertragen.',
     startTitle:'⚡', startSteps:'<strong>start.command</strong> doppelklicken um zu öffnen — kein Server erforderlich.',
     // projects
     newProject:'Neues Projekt', importDoc:'Importieren', noProjects:'Keine Projekte',
     noProjectsHint:'Erstellen Sie ein Projekt, um mit der Anonymisierung zu beginnen.',
-    noDocsTitle:'Keine Dokumente', noDocsHint:'Importieren Sie .rescribe.json-, .txt- oder .docx-Dateien.',
+    noDocsTitle:'Keine Dokumente', noDocsHint:'Importieren Sie Interviews, Notizen oder Zitattabellen.',
     dropZone:'Dateien hier ablegen oder klicken zum Durchsuchen',
     // editor
     original:'Original', anonymized:'Anonymisiert', selectHint:'Text auswählen → Tag hinzufügen',
@@ -656,6 +858,82 @@ const STR = {
     tpTag:'Markieren', tpCustomPh:'Benutzerdefinierter Tag…', tpCreate:'Erstellen', customTags:'Eigene Tags', undoHint:'⌘Z / Ctrl+Z zum Rückgängig',
     tpPseudoLabel:'Pseudonym', tpPseudoPh:'Pseudonym', tpPseudoBtn:'Anwenden',
     dismissHint:'Hervorhebung entfernen (alle Vorkommen)',
+    langMulti:"Mehrsprachig",
+    kindLabel:"Dokumenttyp",
+    kind_interview:"Interview",
+    kind_fieldnote:"Feldnotiz",
+    kind_meeting:"Sitzungsprotokoll",
+    kind_other:"Sonstiges",
+    importCorpusTitle:"Korpus importieren",
+    noDocsToImport:"Keine importierbaren Dokumente in dieser Datei.",
+    importSkipped:"Übersprungen",
+    bundleImportIntro:"{n} Dokument(e) zu importieren — Titel und Typ prüfen:",
+    skip_invalid:"unbekanntes Format",
+    skip_reference:"Literaturangabe (nichts zu anonymisieren)",
+    skip_notRaw:"bereits anonymisiert oder öffentlich",
+    skip_empty:"keine Segmente",
+    skip_duplicate:"bereits im Projekt",
+    speakerTag:"Sprechername",
+    status_pending:"noch nicht anonymisiert",
+    status_working:"Anonymisierung läuft",
+    status_done:"nicht validiert",
+    status_editing:"nicht validiert (in Bearbeitung)",
+    status_error:"Anonymisierungsfehler",
+    excludedReview:"validiert, aber {n} Tag(s) zu prüfen (⚑)",
+    exportAnalysisBtn:"Für Analyse",
+    exportAnalysisTitle:"Export für Analyse",
+    exportNoneValidated:"Kein validiertes Dokument: nichts zu exportieren. Validieren Sie zuerst Ihre Dokumente („Als anonymisiert markieren“).",
+    exportExcluded:"Nicht exportierte Dokumente",
+    exportDone:"{n} Dokument(e) exportiert, nur anonymisierter Text.",
+    exportBlockedTitle:"Export blockiert: identifizierende Daten gefunden",
+    exportBlockedIntro:"Diese echten Werte kommen im Export noch vor. Korrigieren Sie sie im Editor und exportieren Sie erneut.",
+    exportAnyway:"Trotzdem exportieren",
+    selectAll:"Alle auswählen",
+    exportAnywayIntro:"Wenn ein Vorkommen nicht identifizierend ist (ein Ort ohne Bezug zur Person, ein Namensvetter…), haken Sie es ab und wählen Sie „Trotzdem exportieren“. Vorkommen im Text werden als unverändert gelassen gespeichert.",
+    columnLabel:"Spalte",
+    columnsLabel:"Spalten",
+    roleLabel:"Rolle",
+    exampleLabel:"Beispiel",
+    rowsLabel:"Zeilen",
+    colRole_text:"Zu anonymisierender Text",
+    colRole_speaker:"Teilnehmer / Sprecher",
+    colRole_keep:"Unverändert lassen",
+    colRole_skip:"Nicht importieren",
+    sheetImportTitle:"Tabelle importieren",
+    importThisSheet:"Blatt importieren",
+    needTextColumn:"Wählen Sie mindestens eine Spalte „Zu anonymisierender Text“.",
+    noRowsToImport:"Keine verwertbare Zeile in dieser Datei.",
+    tableSearch:"Suchen…",
+    allColumns:"Alle Spalten",
+    deleteRow:"Zeile löschen (Cmd+Z zum Rückgängigmachen)",
+    exportOptXlsx:".xlsx — Tabelle",
+    exportOptXls:".xls — Excel 97-2003",
+    exportOptCsv:".csv — getrennter Text",
+    exportOptWorkbook:"Ganze Arbeitsmappe (.xlsx)",
+    workbookNotReadyTitle:"Nicht validierte Blätter",
+    workbookNotReadyIntro:"Diese Blätter der Arbeitsmappe sind noch nicht validiert („Als anonymisiert markieren“): Sie können nicht anonymisierten Text enthalten. Validieren Sie sie oder exportieren Sie die ganze Arbeitsmappe trotzdem.",
+    workbookExported:"Arbeitsmappe exportiert: {n} Blatt/Blätter.",
+    kind_codingTable:"Kodiertabelle",
+    kind_quoteList:"Zitatliste",
+    colName_number:"Nr.",
+    colName_time:"Zeit",
+    colName_code:"Code",
+    colName_quote:"Zitat",
+    colName_section:"Abschnitt",
+    exportBadKeys:"Verbotene interne Felder gefunden:",
+    exportKeptTitle:"Unverändert gelassene Vorkommen",
+    exportKeptIntro:"Diese Wörter der Entitätenliste wurden bewusst unverändert gelassen. Haken Sie jedes ab, um zu bestätigen, dass es nicht die anonymisierte Person / der Ort ist (wird gespeichert).",
+    exportKeptConfirm:"Bestätigen und exportieren",
+    openDoc:"Öffnen",
+    projectLabel:"Projekt",
+    docLabel:"Dokument",
+    segmentLabel:"Segment / Feld",
+    foundLabel:"Gefunden",
+    expectedTag:"Erwarteter Tag",
+    validateBlockedReview:"Validierung nicht möglich: {n} Tag(s) zu prüfen (⚑) im Dokument.",
+    keepClear:'Unverändert lassen (dieses Vorkommen)',
+    validateTag:'Tag bestätigen',
+    homonymToast:'„{w}“ hat jetzt mehrere Tags: keine automatische Übertragung mehr, automatische Tags prüfen (⚑)',
     scanning:'Eigennamen werden analysiert…', autosaved:'Gespeichert',
     legendPerson:'Vorname in der Datenbank → klicken zum Markieren', legendPlace:'Ort in der Datenbank → klicken zum Markieren', legendProper:'Großgeschriebenes Wort nicht referenziert → prüfen ob Eigenname',
     loadingIndex:'Namensdatenbank wird geladen…',
@@ -699,7 +977,6 @@ const state = {
   currentDocId: null,
   activeMarkEl: null,
   activePseudoEl: null,
-  activePseudoData: null,
   activeRange: null,
   tagNavIdx: -1,
 };
@@ -790,8 +1067,8 @@ const Parsers = {
   rescribe(data) {
     const spkMap = {};
     (data.speakers || []).forEach(s => { spkMap[s.id] = s; });
-    const div = document.createElement('div');
-    div.innerHTML = data.html || '';
+    // Inert document: markup from the file (e.g. <img onerror>) is never executed
+    const div = new DOMParser().parseFromString(data.html || '', 'text/html').body;
     const turns = [...div.querySelectorAll('.turn')];
     const segments = [];
     turns.forEach((el, i) => {
@@ -808,7 +1085,7 @@ const Parsers = {
       text = text.replace(/\s+/g, ' ').trim();
       if (!text) return;
       segments.push({
-        id: `s_${i}`,
+        speakerId: spk ? spk.id : null,
         speaker: spk?.name || '',
         isInterviewer: spk?.interviewer || false,
         timestamp: ts,
@@ -816,41 +1093,158 @@ const Parsers = {
       });
     });
     const meta = data.meta || {};
-    return { segments, format: 'rescribe', title: meta.interviewTitle || data.importedName || data.fileName || '' };
+    const speakers = (data.speakers || []).map(s => ({ id: s.id, role: s.interviewer ? 'interviewer' : 'interviewee', label: s.name || '' }));
+    return { segments, speakers, meta, format: 'rescribe', title: meta.interviewTitle || '' };
   },
 
   txt(text) {
-    const SPEAKER_RE = /^([^\n:—\-]{1,40})\s*[:—\-]\s+/;
-    const lines = text.split('\n');
+    const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Rescribe format: [mm:ss] Speaker (I) : text
+    // Split on timestamp markers — handles both newline-separated AND single-line exports
+    if (/\[\d+:\d+(?::\d+)?\]/.test(normalized)) {
+      const segments = [];
+      const parts = normalized.split(/(?=\[\d+:\d+(?::\d+)?\])/);
+      parts.forEach(part => {
+        const m = part.match(/^\[(\d+:\d+(?::\d+)?)\]\s+(.+?)\s*:\s*([\s\S]+)/);
+        if (!m) return;
+        const isInterviewer = /\(I\)/i.test(m[2]);
+        const speaker = m[2].replace(/\s*\(I\)\s*/i, '').trim();
+        const segText = m[3].replace(/\n/g, ' ').trim();
+        if (segText) segments.push({ id: `s_${segments.length}`, speaker, isInterviewer, timestamp: m[1], text: segText });
+      });
+      if (segments.length > 0) {
+        const hasExplicit = segments.some(s => s.isInterviewer);
+        if (!hasExplicit) {
+          const spkCounts = {};
+          segments.forEach(s => { spkCounts[s.speaker] = (spkCounts[s.speaker] || 0) + 1; });
+          const sorted = Object.entries(spkCounts).sort((a,b) => a[1]-b[1]);
+          const minority = sorted[0]?.[0];
+          if (minority) segments.forEach(s => { if (s.speaker === minority) s.isInterviewer = true; });
+        }
+        return { segments, format: 'txt', title: '' };
+      }
+    }
+
+    // Bare inline timestamp format: "02:47 Question? 02:50 Answer. 04:32 ..."
+    // Timestamps appear mid-text as MM:SS with no brackets and no speaker labels
+    const bareTimestamps = normalized.match(/\b\d{1,2}:\d{2}\s/g);
+    if (bareTimestamps && bareTimestamps.length >= 2) {
+      const parts = normalized.split(/\b(\d{1,2}:\d{2})\s+/);
+      // parts: [preamble, ts1, text1, ts2, text2, ...]
+      const segments = [];
+      const preamble = parts[0].replace(/^#+[^\n]*\n?/gm, '').replace(/\n/g, ' ').trim();
+      if (preamble) segments.push({ id: `s_0`, speaker: '', isInterviewer: false, timestamp: null, text: preamble });
+      for (let i = 1; i + 1 < parts.length; i += 2) {
+        const segText = parts[i + 1].replace(/\n/g, ' ').trim();
+        if (segText) segments.push({ id: `s_${segments.length}`, speaker: '', isInterviewer: false, timestamp: null, text: segText });
+      }
+      if (segments.length > 1) {
+        // Mark shorter segments (likely questions) as interviewer
+        const avgLen = segments.reduce((s, seg) => s + seg.text.length, 0) / segments.length;
+        segments.forEach(seg => { if (seg.text.length < avgLen * 0.6) seg.isInterviewer = true; });
+        return { segments, format: 'txt', title: '' };
+      }
+    }
+
+    // Generic line-by-line parser for plain transcripts (Speaker: text).
+    // A label before ":" (or a spaced dash) only counts as a speaker if it looks like one;
+    // otherwise the whole line stays in the text, so no words are lost.
+    const lines = normalized.split('\n').map(l => l.trim());
     const segments = [];
-    let cur = null;
-    lines.forEach(line => {
+    const SPEAKER_RE = /^([^:\n]{1,40}?)(?:\s*:|\s+[—–-])\s+(?=\S)/;
+    const LIST_MARK_RE = /^(?:[*•·–—>#+-]|\d+[.)]|[a-z][.)]\s)/i;
+    // Conventional speaker labels, accepted even when used only once
+    const SPEAKER_FORM_RE = /^(?:[a-z]|[a-z]{1,3} ?\d{1,2}|int|enq|interviewer|intervieweur|intervieweuse|interviewee|enqueteur|enqueteuse|enquetrice|enquete|enquetee|participant|participante|chercheur|chercheuse|moderator|moderateur|moderatrice|animateur|animatrice|speaker|locuteur|locutrice|question|reponse)(?: ?\d{1,2})?$/;
+    const fold = l => l.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ');
+    const labelOf = line => {
       const m = line.match(SPEAKER_RE);
-      if (m) {
+      if (!m) return null;
+      const label = m[1].trim();
+      if (!label || LIST_MARK_RE.test(label) || /[,;?!]/.test(label) || label.split(/\s+/).length > 4) return null;
+      return { label, rest: line.slice(m[0].length).trim() };
+    };
+    const counts = {};
+    lines.forEach(l => { const c = labelOf(l); if (c) counts[c.label] = (counts[c.label] || 0) + 1; });
+    const isSpeaker = label => counts[label] >= 2 || /\(I\)/i.test(label)
+      || SPEAKER_FORM_RE.test(fold(label)) || /^[A-Z]{1,3}\d{0,2}$/.test(label);
+    let cur = null;
+    lines.forEach(trimmed => {
+      if (!trimmed || /^[—\-─═*]{3,}$/.test(trimmed)) return;
+      if (/^Nombre de mots/i.test(trimmed)) return;
+      const c = labelOf(trimmed);
+      if (c && isSpeaker(c.label)) {
         if (cur) segments.push(cur);
-        cur = { id: `s_${segments.length}`, speaker: m[1].trim(), isInterviewer: false, timestamp: null, text: line.slice(m[0].length).trim() };
+        cur = { id: `s_${segments.length}`, speaker: c.label.replace(/\s*\(I\)\s*/i, '').trim(),
+          isInterviewer: /\(I\)/i.test(c.label), timestamp: null, text: c.rest };
       } else if (cur) {
-        cur.text += (cur.text ? ' ' : '') + line.trim();
-      } else if (line.trim()) {
-        segments.push({ id: `s_${segments.length}`, speaker: '', isInterviewer: false, timestamp: null, text: line.trim() });
+        cur.text += (cur.text ? ' ' : '') + trimmed;
+      } else {
+        segments.push({ id: `s_${segments.length}`, speaker: '', isInterviewer: false, timestamp: null, text: trimmed });
       }
     });
     if (cur) segments.push(cur);
-    // Heuristic: mark likely interviewers
-    const spkCounts = {};
-    segments.forEach(s => { spkCounts[s.speaker] = (spkCounts[s.speaker] || 0) + 1; });
-    const sorted = Object.entries(spkCounts).sort((a,b)=>a[1]-b[1]);
-    const minority = sorted[0]?.[0];
-    if (minority) segments.forEach(s => { if (s.speaker === minority) s.isInterviewer = true; });
+    const hasExplicit = segments.some(s => s.isInterviewer);
+    if (!hasExplicit) {
+      const spkCounts = {};
+      segments.forEach(s => { spkCounts[s.speaker] = (spkCounts[s.speaker] || 0) + 1; });
+      const sorted = Object.entries(spkCounts).sort((a,b) => a[1]-b[1]);
+      const minority = sorted[0]?.[0];
+      if (minority) segments.forEach(s => { if (s.speaker === minority) s.isInterviewer = true; });
+    }
     return { segments, format: 'txt', title: '' };
   },
 
   async docx(arrayBuffer) {
-    if (!window.mammoth) await loadMammoth();
-    const result = await mammoth.extractRawText({ arrayBuffer });
-    return Parsers.txt(result.value);
+    return Parsers.txt(await docxText(arrayBuffer));
+  },
+
+  // Field notes / other: one segment per paragraph, no speaker detection
+  paragraphs(text) {
+    const norm = text.replace(/\r\n?/g, '\n');
+    let blocks = norm.split(/\n\s*\n/);
+    if (blocks.length === 1) blocks = norm.split('\n');
+    const segments = blocks
+      .map(b => b.replace(/\s+/g, ' ').trim().replace(/^#+\s*/, ''))
+      .filter(b => b && !/^[—\-─═*]{3,}$/.test(b))
+      .map(b => ({ speakerId: null, speaker: '', isInterviewer: false, timestamp: null, text: b }));
+    return { segments, format: 'txt', title: '' };
+  },
+
+  // corpus-doc (shared schema): ids of document, speakers and segments are kept as is
+  corpusDoc(cd) {
+    const speakers = (cd.speakers || []).map(sp => ({
+      id: String(sp.id), role: CORPUS_ROLES.includes(sp.role) ? sp.role : 'other', label: sp.label || '',
+    }));
+    const byId = Object.fromEntries(speakers.map(sp => [sp.id, sp]));
+    const used = new Set();
+    let next = 0;
+    const segments = (cd.segments || []).filter(sg => (sg.text || '').trim()).map(sg => {
+      let id = sg.id ? String(sg.id) : '';
+      if (!id || used.has(id)) { do { id = segId(++next); } while (used.has(id)); }
+      used.add(id);
+      const spk = sg.speakerId != null ? byId[sg.speakerId] : null;
+      return {
+        id, speakerId: spk ? spk.id : null, speaker: spk?.label || '', isInterviewer: spk?.role === 'interviewer',
+        timestamp: typeof sg.t === 'number' ? sg.t : null,
+        ...(Number.isInteger(sg.page) ? { page: sg.page } : {}),
+        text: sg.text,
+      };
+    });
+    return {
+      segments, speakers, idsStable: true, format: 'corpus',
+      corpusId: cd.id, kind: cd.kind || 'interview', title: cd.title || cd.meta?.interviewTitle || '',
+      lang: cd.lang, createdAt: cd.createdAt, meta: cd.meta || {},
+      provenance: Array.isArray(cd.provenance) ? cd.provenance.map(x => ({ ...x })) : [],
+      ext: cd.ext || {},
+    };
   },
 };
+
+async function docxText(arrayBuffer) {
+  if (!window.mammoth) await loadMammoth();
+  return (await mammoth.extractRawText({ arrayBuffer })).value;
+}
 
 async function loadMammoth() {
   return new Promise((res, rej) => {
@@ -888,7 +1282,8 @@ function buildPrompt(project) {
   let sys = SYSTEM_BASE;
   const eb = project.entityBank || {};
   const fb = project.fewshotBank || [];
-  const ebEntries = Object.entries(eb);
+  const amb = ambiguousForms(eb);
+  const ebEntries = Object.entries(eb).filter(([k]) => !amb.has(normForm(k)));
   if (ebEntries.length) {
     sys += `\n\n${t('entities_label')}\n` + ebEntries.map(([k,v]) => `- "${k}" → ${v.tag}`).join('\n');
   }
@@ -901,34 +1296,340 @@ function buildPrompt(project) {
   return sys;
 }
 
-function inferTagMap(originalText, anonText) {
-  const tagRe = /\[[A-ZÉÈÀÙÎÏÔÂ_]+(?:_\d+)?\]/g;
-  const parts = anonText.split(tagRe);
-  const tags = [...anonText.matchAll(tagRe)].map(m => m[0]);
-  const map = {};
-  let searchFrom = 0;
-  for (let i = 0; i < tags.length; i++) {
-    const before = parts[i];
-    const after = parts[i + 1] ?? '';
-    const beforeIdx = originalText.indexOf(before, searchFrom);
-    if (beforeIdx < 0) continue;
-    const beforeEnd = beforeIdx + before.length;
-    const afterStart = after ? originalText.indexOf(after, beforeEnd) : originalText.length;
-    if (afterStart < 0) continue;
-    const orig = originalText.slice(beforeEnd, afterStart).trim();
-    if (orig && orig.length < 120) map[orig] = tags[i];
-    searchFrom = beforeEnd;
-  }
-  return map;
+// Whole-word regex, Unicode-aware (accents) — "Jean" won't match inside "Jeanne", "Jean-Pierre" or a {pseudo}
+function wordRe(str) {
+  const esc = str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pre = /^[\p{L}\p{N}]/u.test(str) ? '(?<![\\p{L}\\p{N}\\-\\u2010{])' : '';
+  const post = /[\p{L}\p{N}]$/u.test(str) ? '(?![\\p{L}\\p{N}\\-\\u2010}])' : '';
+  return new RegExp(pre + esc + post, 'gu');
+}
+function replaceWord(text, str, token) {
+  return text.replace(wordRe(str), () => token);
 }
 
 function preApplyEntityBank(text, entityBank) {
+  const amb = ambiguousForms(entityBank);
   let result = text;
-  Object.entries(entityBank || {}).forEach(([orig, info]) => {
-    const re = new RegExp('\\b' + orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
-    result = result.replace(re, info.tag);
-  });
+  Object.entries(entityBank || {})
+    .sort(([a], [b]) => b.length - a.length)
+    .forEach(([orig, info]) => {
+      if (!amb.has(normForm(orig))) result = replaceWord(result, orig, info.tag);
+    });
   return result;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// SPAN MODEL — tags are ranges over the segment's original text
+//   seg.base  : text the ranges index into (the original, or a reconstruction
+//               when legacy output can't be aligned on it)
+//   seg.spans : [{ s, e, tag, src: manual|auto|variant|llm|legacy, review?, unknown? }]
+//   seg.keep  : [{ s, e }] occurrences the user restored — never re-tagged automatically
+//   seg.anonText / seg.tagMap are derived from spans (exports, NER and LLM keep using them)
+// ════════════════════════════════════════════════════════════════════
+const TOKEN_RE = /\[[A-ZÉÈÀÙÎÏÔÂ_]+(?:_\d+)?\]|\{[^}]+\}/g;
+
+// Rebuild spans from an anonText. Never alters the anonText it is given.
+function alignAnon(orig, anon, tagMap, src = 'legacy') {
+  const parts = anon.split(TOKEN_RE);
+  const toks = anon.match(TOKEN_RE) || [];
+  const rev = {};
+  Object.entries(tagMap || {}).forEach(([o, t]) => { (rev[t] = rev[t] || []).push(o); });
+  Object.values(rev).forEach(a => a.sort((x, y) => y.length - x.length));
+  let base = '', p = 0, aligned = true;
+  const spans = [];
+  for (let i = 0; i < parts.length; i++) {
+    const lit = parts[i];
+    base += lit;
+    if (aligned && orig.startsWith(lit, p)) p += lit.length; else aligned = false;
+    if (i === toks.length) break;
+    const tok = toks[i];
+    let o = null;
+    if (aligned) {
+      o = (rev[tok] || []).find(c => orig.startsWith(c, p)) ?? null;
+      if (o === null) {
+        const next = parts[i + 1];
+        // Adjacent tokens (empty literal between them) can't be split reliably
+        const end = next ? orig.indexOf(next, p) : (i === toks.length - 1 ? orig.length : -1);
+        if (end > p) o = orig.slice(p, end);
+      }
+      if (o !== null) p += o.length; else aligned = false;
+    }
+    if (o === null && rev[tok]?.length === 1) o = rev[tok][0];
+    if (o === tok) { base += tok; continue; } // literal bracketed text such as [INAUDIBLE]
+    const s = base.length;
+    if (o !== null && o.trim()) { base += o; spans.push({ s, e: base.length, tag: tok, src }); }
+    else { base += tok; spans.push({ s, e: base.length, tag: tok, src, unknown: true }); }
+  }
+  return { base, spans };
+}
+
+function syncSeg(seg) {
+  seg.spans.sort((a, b) => a.s - b.s);
+  let out = '', p = 0;
+  const tm = {};
+  seg.spans.forEach(sp => {
+    out += seg.base.slice(p, sp.s) + sp.tag;
+    if (!sp.unknown) tm[seg.base.slice(sp.s, sp.e)] = sp.tag;
+    p = sp.e;
+  });
+  seg.anonText = out + seg.base.slice(p);
+  seg.tagMap = tm;
+}
+
+// Lazily migrate a document to the span model. Returns true if anything was added.
+function ensureModel(doc) {
+  let changed = false;
+  doc.anonymized = doc.anonymized || [];
+  doc.segments.forEach((orig, i) => {
+    let seg = doc.anonymized[i];
+    if (!seg) seg = doc.anonymized[i] = { ...orig, anonText: '', anonSpeaker: '', confirmed: false, tagMap: {} };
+    if (Array.isArray(seg.spans)) return;
+    const { base, spans } = alignAnon(orig.text, seg.anonText || orig.text, seg.tagMap);
+    seg.base = base; seg.spans = spans; seg.keep = [];
+    syncSeg(seg);
+    changed = true;
+  });
+  return changed;
+}
+
+// ── Form matching: case-, accent-, apostrophe- and hyphen/space-insensitive ──
+// Separators compared as one space: whitespace, every dash (hyphens, en/em dashes) and the minus sign
+const SEP_RE = /[\s\p{Pd}\u2212]/u;
+// Invisible format characters (zero-width spaces/joiners, soft hyphen, BOM) are ignored
+const INVISIBLE_RE = /\p{Cf}/u;
+// Apostrophe look-alikes compared as '
+const APOS_RE = /[\u2018\u2019\u02BC\u00B4\u0060\u2032\uFF07]/u;
+// Word characters for boundaries: letters, digits and joining hyphens only —
+// not en/em dashes, so "Paris" is still found in "Paris—Lyon"
+const WORDCH_RE = /[\p{L}\p{N}\-\u2010\u2011]/u;
+// Letters with no Unicode decomposition, folded by hand (after lower-casing)
+const LETTER_FOLD = { 'œ': 'oe', 'æ': 'ae', 'ß': 'ss', 'ø': 'o', 'ł': 'l', 'đ': 'd' };
+function normMap(text) {
+  let n = '';
+  const map = [];
+  for (let i = 0; i < text.length; ) {
+    const ch = String.fromCodePoint(text.codePointAt(i));
+    if (INVISIBLE_RE.test(ch)) {
+      // dropped: map keeps pointing at real characters, so offsets stay valid
+    } else if (SEP_RE.test(ch)) {
+      if (!n.endsWith(' ')) { n += ' '; map.push(i); }
+    } else if (APOS_RE.test(ch)) {
+      n += "'"; map.push(i);
+    } else {
+      // NFKD also unfolds ligatures (ﬁ) and fullwidth letters (Ｍ)
+      const nb = ch.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase()
+        .replace(/[œæßøłđ]/g, c => LETTER_FOLD[c]);
+      for (let k = 0; k < nb.length; k++) { n += nb[k]; map.push(i); }
+    }
+    i += ch.length;
+  }
+  map.push(text.length);
+  return { n, map };
+}
+// Nearest visible character around a match (invisible characters don't make a word boundary)
+function charBefore(text, s) {
+  let i = s - 1;
+  while (i >= 0 && INVISIBLE_RE.test(text[i])) i--;
+  return text[i];
+}
+function charAfter(text, e) {
+  let i = e;
+  while (i < text.length && INVISIBLE_RE.test(text[i])) i++;
+  return text[i];
+}
+function normForm(s) { return normMap(String(s).trim()).n.trim(); }
+
+// Whole-word occurrences of `form` in text: [{ s, e, exact }]
+function findForms(text, form, nm = normMap(text)) {
+  const nf = normForm(form);
+  const out = [];
+  if (!nf) return out;
+  // Multi-part names also match their joined spelling ("Jean-Pierre" ↔ "Jeanpierre", soft hyphen between parts)
+  const needles = nf.includes(' ') ? [nf, nf.replace(/ /g, '')] : [nf];
+  for (const needle of needles) {
+    for (let k = nm.n.indexOf(needle); k >= 0; k = nm.n.indexOf(needle, k + needle.length)) {
+      const s = nm.map[k], e = nm.map[k + needle.length];
+      const before = charBefore(text, s), after = charAfter(text, e);
+      if ((before && WORDCH_RE.test(before)) || (after && WORDCH_RE.test(after))) continue;
+      if (out.some(m => m.s === s)) continue;
+      out.push({ s, e, exact: text.slice(s, e) === form });
+    }
+  }
+  return out.sort((a, b) => a.s - b.s);
+}
+
+const overlaps = (a, b) => a.s < b.e && b.s < a.e;
+
+function addSpan(seg, sp) {
+  seg.spans = seg.spans.filter(x => !overlaps(x, sp));
+  seg.keep = (seg.keep || []).filter(x => !overlaps(x, sp));
+  seg.spans.push(sp);
+}
+
+// Tag untagged, unprotected occurrences of `form`: exact → auto, variants → flagged for review
+function propagateInSeg(seg, form, tag) {
+  let n = 0;
+  findForms(seg.base, form).forEach(m => {
+    const r = { s: m.s, e: m.e };
+    if (seg.spans.some(x => overlaps(x, r)) || (seg.keep || []).some(x => overlaps(x, r))) return;
+    seg.spans.push(m.exact ? { ...r, tag, src: 'auto' } : { ...r, tag, src: 'variant', review: true });
+    n++;
+  });
+  if (n) syncSeg(seg);
+  return n;
+}
+
+// When a form becomes ambiguous, every tag that wasn't placed by hand goes to the review queue
+function flagFormForReview(seg, form, exceptSpan) {
+  const nf = normForm(form);
+  let n = 0;
+  seg.spans.forEach(sp => {
+    if (sp === exceptSpan || sp.src === 'manual' || sp.unknown || sp.review) return;
+    if (normForm(seg.base.slice(sp.s, sp.e)) === nf) { sp.review = true; n++; }
+  });
+  return n;
+}
+
+// ── Entity bank: an entry may carry homonym alternatives in `alts` ──
+function bankTags(info) { return [info, ...(info.alts || [])]; }
+
+function ambiguousForms(bank) {
+  const byForm = {};
+  Object.entries(bank || {}).forEach(([w, info]) => {
+    const f = normForm(w);
+    byForm[f] = byForm[f] || new Set();
+    bankTags(info).forEach(x => byForm[f].add(x.tag));
+  });
+  return new Set(Object.keys(byForm).filter(f => byForm[f].size > 1));
+}
+
+function registerEntity(bank, word, entry) {
+  const cur = bank[word];
+  if (!cur) { bank[word] = { ...entry, count: 1 }; return; }
+  if (cur.tag === entry.tag) { cur.count = (cur.count || 0) + 1; return; }
+  cur.alts = cur.alts || [];
+  const alt = cur.alts.find(a => a.tag === entry.tag);
+  if (alt) alt.count = (alt.count || 0) + 1;
+  else cur.alts.push({ ...entry, count: 1 });
+}
+
+function bankRemoveTag(bank, tag) {
+  Object.keys(bank).forEach(w => {
+    const info = bank[w];
+    const alts = (info.alts || []).filter(a => a.tag !== tag);
+    if (info.tag === tag) {
+      if (!alts.length) { delete bank[w]; return; }
+      bank[w] = { ...alts[0] };
+      if (alts.length > 1) bank[w].alts = alts.slice(1);
+    } else if (alts.length) info.alts = alts;
+    else delete info.alts;
+  });
+}
+
+function bankTypeForTag(bank, tag) {
+  for (const info of Object.values(bank || {})) {
+    const hit = bankTags(info).find(x => x.tag === tag);
+    if (hit) return hit.type;
+  }
+  return null;
+}
+
+// ── Rendering ──
+function escAttr(s) { return escHtml(String(s)).replace(/"/g, '&quot;'); }
+
+function renderSeg(seg, hints = true, amb = ambiguousForms(_currentEntityBank)) {
+  let html = '', p = 0;
+  seg.spans.forEach(sp => {
+    if (sp.s > p) html += renderPlain(seg, p, sp.s, hints, amb);
+    html += renderSpan(seg, sp);
+    p = sp.e;
+  });
+  if (seg.base.length > p) html += renderPlain(seg, p, seg.base.length, hints, amb);
+  return html;
+}
+
+function renderSpan(seg, sp) {
+  const orig = sp.unknown ? '' : seg.base.slice(sp.s, sp.e);
+  const rv = sp.review ? ' tag-review' : '';
+  const data = `data-s="${sp.s}" data-e="${sp.e}" data-original="${escAttr(orig)}"`;
+  const pm = sp.tag.match(/^\{([^}]+)\}$/);
+  if (pm) {
+    const type = bankTypeForTag(_currentEntityBank, sp.tag);
+    const pCls = (type && TAG_CLS[type]) || 'tag-person';
+    return `<span class="tag ${pCls}${rv}" style="font-style:italic" data-pseudo="${escAttr(pm[1])}" ${data} onclick="pseudoClick(this,event)">${escHtml(pm[1])}</span>`;
+  }
+  const id = sp.tag.slice(1, -1);
+  return `<mark class="tag ${tagCls(id)}${rv}" data-tag="${escAttr(id)}" ${data}>[${escHtml(tagDisplayId(id))}]</mark>`;
+}
+
+// Plain text between tags; homonyms left in clear (and not explicitly kept) are highlighted for a decision
+function renderPlain(seg, s, e, hints, amb) {
+  const text = seg.base.slice(s, e);
+  if (!hints) return escHtml(text);
+  if (!amb.size) return hintHtml(text);
+  const nm = normMap(text);
+  const hits = [];
+  Object.keys(_currentEntityBank).forEach(w => {
+    if (!amb.has(normForm(w))) return;
+    findForms(text, w, nm).forEach(m => {
+      const abs = { s: s + m.s, e: s + m.e };
+      if ((seg.keep || []).some(k => overlaps(k, abs))) return;
+      if (!hits.some(h => overlaps(h, m))) hits.push(m);
+    });
+  });
+  if (!hits.length) return hintHtml(text);
+  hits.sort((a, b) => a.s - b.s);
+  let html = '', p = 0;
+  hits.forEach(h => {
+    html += hintHtml(text.slice(p, h.s));
+    html += `<span class="hint-ambiguous" onclick="hintClick(this)">${escHtml(text.slice(h.s, h.e))}</span>`;
+    p = h.e;
+  });
+  return html + hintHtml(text.slice(p));
+}
+
+// ── DOM selection → base offsets ──
+function fragBaseLen(n) {
+  let len = 0;
+  n.childNodes.forEach(c => {
+    if (c.nodeType === Node.TEXT_NODE) len += c.textContent.length;
+    else if (c.nodeType === Node.ELEMENT_NODE && c.dataset.s != null) len += (+c.dataset.e) - (+c.dataset.s);
+    else if (c.nodeType === Node.ELEMENT_NODE) len += fragBaseLen(c);
+  });
+  return len;
+}
+
+function domToBase(body, node, offset, isEnd) {
+  const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  const tokEl = el?.closest('[data-s]');
+  // Boundary inside a tag → extend the selection to cover the whole tag
+  if (tokEl && body.contains(tokEl)) return isEnd ? +tokEl.dataset.e : +tokEl.dataset.s;
+  const r = document.createRange();
+  r.setStart(body, 0);
+  r.setEnd(node, offset);
+  return fragBaseLen(r.cloneContents());
+}
+
+function readSelection(range) {
+  const ca = range.commonAncestorContainer;
+  const segEl = (ca.nodeType === Node.ELEMENT_NODE ? ca : ca.parentElement)?.closest('.seg');
+  if (!segEl) return null;
+  const idx = +segEl.dataset.idx;
+  const body = document.getElementById(`abody_${idx}`);
+  if (!body?.contains(range.startContainer) || !body.contains(range.endContainer)) return null;
+  return {
+    idx,
+    s: domToBase(body, range.startContainer, range.startOffset, false),
+    e: domToBase(body, range.endContainer, range.endOffset, true),
+  };
+}
+
+// Clicked tag → plain descriptor, immune to later re-renders
+function tokFromEl(el) {
+  const segEl = el?.closest('.seg');
+  if (!segEl || el.dataset.s == null) return null;
+  const tag = el.dataset.pseudo != null ? `{${el.dataset.pseudo}}` : `[${el.dataset.tag}]`;
+  return { idx: +segEl.dataset.idx, s: +el.dataset.s, tag };
 }
 
 async function anonymizeSegment(text, project) {
@@ -993,61 +1694,40 @@ const HINT_STOPWORDS = new Set([
   'danke','bitte','hier','dort','dann','also','jedoch','trotzdem','daher','deshalb',
 ]);
 
-function renderBalises(text, tagMap = {}, hints = false) {
-  const rev = {};
-  Object.entries(tagMap).forEach(([orig, tg]) => { rev[tg] = orig; });
-  // Split on [TAG] and {pseudo} tokens
-  const TAG_RE = /(\[[A-ZÉÈÀÙÎÏÔÂ_]+(?:_\d+)?\]|\{[^}]+\})/g;
-  const parts = text.split(TAG_RE);
-  return parts.map(part => {
-    // Pseudo: {word} → styled italic purple span
-    const pm = part.match(/^\{([^}]+)\}$/);
-    if (pm) {
-      const orig = rev[`{${pm[1]}}`] || '';
-      return `<span class="tag tag-pseudo" data-pseudo="${escHtml(pm[1])}" data-original="${escHtml(orig)}" onclick="pseudoClick(this,event)">${escHtml(pm[1])}</span>`;
-    }
-    const m = part.match(/^\[([A-ZÉÈÀÙÎÏÔÂ_]+(?:_\d+)?)\]$/);
-    if (m) {
-      const tag = m[1];
-      const cls = tagCls(tag);
-      const orig = rev[`[${tag}]`];
-      const dataOrig = orig ? ` data-original="${escHtml(orig)}"` : '';
-      return `<mark class="tag ${cls}" data-tag="${tag}"${dataOrig}>[${tag}]</mark>`;
-    }
-    let escaped = escHtml(part);
-    if (hints) {
-      // Database hits: persons (red) and places (green)
-      if (_nameIndex?.size) {
-        escaped = escaped.replace(/[A-ZÁÉÈÊËÀÂÙÎÏÔÛÇŒÆ][A-Za-záéèêëàâùîïôûçœæÀ-Ö×-öø-ÿ'-]+/g,
-          w => {
-            const wl = w.toLowerCase();
-            if (_hintIgnoreList.has(wl)) return w;
-            if (_personIndex?.has(wl)) return `<span class="hint-name-person" onclick="hintClick(this)">${w}</span>`;
-            if (_placeIndex?.has(wl))  return `<span class="hint-name-place"  onclick="hintClick(this)">${w}</span>`;
-            return w;
-          });
-      }
-      // Yellow: other capitalized words ≥3 chars after a space, excluding common grammatical words
-      escaped = escaped.replace(/(\s)([A-ZÁÉÈÊËÀÂÙÎÏÔÛÇ][A-Za-záéèêëàâùîïôûçÀ-Ö×-öø-ÿ'-]{2,})(?=[^<]|$)/g,
-        (m, sp, w) => {
-          const wl = w.toLowerCase();
-          if (_nameIndex?.has(wl)) return m; // already orange
-          if (_hintIgnoreList.has(wl)) return m; // user dismissed
-          if (HINT_STOPWORDS.has(wl)) return m; // common word
-          // Skip contractions: I'm, C'est, J'ai, Don't, etc. (apostrophe prefix ≤2 chars)
-          const apoIdx = w.search(/['']/);
-          if (apoIdx > 0 && apoIdx <= 2) return m;
-          return `${sp}<span class="hint-proper" onclick="hintClick(this)">${w}</span>`;
-        });
-    }
-    return escaped;
-  }).join('');
+// Escaped plain text with suggestion highlights (name database + capitalised words)
+function hintHtml(part) {
+  let escaped = escHtml(part);
+  // Database hits: persons (red) and places (green)
+  if (_nameIndex?.size) {
+    escaped = escaped.replace(/[A-ZÁÉÈÊËÀÂÙÎÏÔÛÇŒÆ][A-Za-záéèêëàâùîïôûçœæÀ-Ö×-öø-ÿ'-]+/g,
+      w => {
+        const wl = w.toLowerCase();
+        if (_hintIgnoreList.has(wl)) return w;
+        if (_personIndex?.has(wl)) return `<span class="hint-name-person" onclick="hintClick(this)">${w}</span>`;
+        if (_placeIndex?.has(wl))  return `<span class="hint-name-place"  onclick="hintClick(this)">${w}</span>`;
+        return w;
+      });
+  }
+  // Yellow: other capitalized words ≥3 chars after a space, excluding common grammatical words
+  escaped = escaped.replace(/(\s)([A-ZÁÉÈÊËÀÂÙÎÏÔÛÇ][A-Za-záéèêëàâùîïôûçÀ-Ö×-öø-ÿ'-]{2,})(?=[^<]|$)/g,
+    (m, sp, w) => {
+      const wl = w.toLowerCase();
+      if (_nameIndex?.has(wl)) return m; // already orange
+      if (_hintIgnoreList.has(wl)) return m; // user dismissed
+      if (HINT_STOPWORDS.has(wl)) return m; // common word
+      // Skip contractions: I'm, C'est, J'ai, Don't, etc. (apostrophe prefix ≤2 chars)
+      const apoIdx = w.search(/['']/);
+      if (apoIdx > 0 && apoIdx <= 2) return m;
+      return `${sp}<span class="hint-proper" onclick="hintClick(this)">${w}</span>`;
+    });
+  return escaped;
 }
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function fmtTs(s) {
   if (!s && s !== 0) return '';
+  if (typeof s === 'string') return s; // already formatted (e.g. "0:25" from Rescribe)
   const m = Math.floor(s/60), sec = Math.floor(s%60);
   return `${m}:${String(sec).padStart(2,'0')}`;
 }
@@ -1250,15 +1930,15 @@ function applyNerEntities(text, entities, entityBank, threshold) {
     }
 
     tagMap[word] = tag;
-    const re = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-    result = result.replace(re, tag);
+    result = replaceWord(result, word, tag);
   }
 
   // Apply entity bank for known entities the model missed
   Object.entries(entityBank || {}).forEach(([orig, info]) => {
     if (tagMap[orig] || !result.includes(orig)) return;
-    const re = new RegExp(orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-    result = result.replace(re, info.tag);
+    const next = replaceWord(result, orig, info.tag);
+    if (next === result) return;
+    result = next;
     tagMap[orig] = info.tag;
   });
 
@@ -1311,25 +1991,34 @@ async function renderProjects() {
   if (!projects.length) { empty.classList.remove('hidden'); return; }
   empty.classList.add('hidden');
   projects.sort((a,b) => (b.updatedAt||'').localeCompare(a.updatedAt||''));
-  projects.forEach(p => {
-    const docs = []; // will show 0 for now, updated after
+  for (const p of projects) {
+    const allDocs = await DB.getByIndex('documents', 'projectId', p.id);
+    const nbDocs = allDocs.length;
+    const nbDone = allDocs.filter(d => ['done','validated'].includes(d.status)).length;
+    const nbPending = nbDocs - nbDone;
     const el = document.createElement('div');
     el.className = 'card proj-card';
     const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString(state.lang==='fr'?'fr-FR':'en-US') : '—';
     const nbEntities = Object.keys(p.entityBank||{}).length;
+    const langFlag = { fr:'🇫🇷', en:'🇬🇧', de:'🇩🇪', multi:'🌐' }[p.docLang||'fr'] || '';
+    const docsLabel = nbPending > 0
+      ? `${nbDone}/${nbDocs} ${t('projOf')} <span style="color:var(--accent)">(${nbPending} à faire)</span>`
+      : `${nbDocs} ${t('projOf')}`;
     el.innerHTML = `
       <div style="display:flex;align-items:flex-start;gap:8px">
         <h3 style="flex:1;min-width:0">${escHtml(p.name)}</h3>
-        <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:.75rem;flex-shrink:0" onclick="event.stopPropagation();showRenameProject('${p.id}','${escHtml(p.name)}')" title="${t('rename')}">✎</button>
+        <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:.75rem;flex-shrink:0" data-id="${escAttr(p.id)}" data-name="${escAttr(p.name || '')}" onclick="event.stopPropagation();showRenameProject(this.dataset.id, this.dataset.name)" title="${t('rename')}">✎</button>
         <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:.75rem;flex-shrink:0;color:var(--err,#f87171)" onclick="event.stopPropagation();confirmDeleteProject('${p.id}')" title="${t('delete')}">✕</button>
       </div>
       <div class="meta" style="margin-top:8px">
         <span>${date}</span>
-        <span class="badge">${nbEntities} ${t('entities')}</span>
+        ${langFlag ? `<span>${langFlag}</span>` : ''}
+        <span class="badge">${docsLabel}</span>
+        <span class="badge">${nbEntities} tags</span>
       </div>`;
     el.onclick = () => openProject(p.id);
     grid.appendChild(el);
-  });
+  }
 }
 
 async function openProject(id) {
@@ -1367,16 +2056,19 @@ async function updateProjectFileStatus(project) {
 }
 
 async function renderDocs(projectId, project) {
+  // Callers often hold a copy loaded before tags were added in the editor: read it fresh
+  project = (await DB.get('projects', projectId)) || project;
+  if (state.currentProjectId === projectId) state.currentProject = project;
   const docs = await DB.getByIndex('documents', 'projectId', projectId);
   const list = document.getElementById('doc-list');
   const empty = document.getElementById('doc-empty');
   list.innerHTML = '';
-  if (!docs.length) { empty.style.display = ''; return; }
-  empty.style.display = 'none';
-  docs.sort((a,b) => (a.importedAt||'').localeCompare(b.importedAt||''));
   const nbDone = docs.filter(d => ['done','validated'].includes(d.status)).length;
   const nbEntities = Object.keys(project.entityBank||{}).length;
   document.getElementById('proj-stats-label').textContent = `${nbDone}/${docs.length} ${t('projOf')} · ${nbEntities} ${t('entities')}`;
+  if (!docs.length) { empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  docs.sort((a,b) => (a.importedAt||'').localeCompare(b.importedAt||''));
 
   docs.forEach(doc => {
     const el = document.createElement('div');
@@ -1397,7 +2089,7 @@ async function renderDocs(projectId, project) {
     const fmt = doc.format === 'rescribe' ? '📋' : doc.format === 'docx' ? '📄' : '📝';
 
     const actions = `
-      <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:.75rem" onclick="event.stopPropagation();showRenameDoc('${doc.id}','${escHtml(doc.title||'')}')" title="${t('rename')}">✎</button>
+      <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:.75rem" data-id="${escAttr(doc.id)}" data-title="${escAttr(doc.title || '')}" onclick="event.stopPropagation();showRenameDoc(this.dataset.id, this.dataset.title)" title="${t('rename')}">✎</button>
       <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:.75rem;color:var(--err,#f87171)" onclick="event.stopPropagation();confirmDeleteDoc('${doc.id}')" title="${t('delete')}">✕</button>`;
 
     el.innerHTML = `
@@ -1416,10 +2108,20 @@ async function renderDocs(projectId, project) {
 // ════════════════════════════════════════════════════════════════════
 function triggerImport() { document.getElementById('file-input').click(); }
 
+// Anchored on the button's right edge, unless that would push it off screen (narrow window)
+function toggleExportMenu() {
+  const menu = document.getElementById('export-menu');
+  menu.classList.toggle('hidden');
+  if (menu.classList.contains('hidden')) return;
+  menu.style.left = ''; menu.style.right = '0';
+  if (menu.getBoundingClientRect().left < 8) { menu.style.right = 'auto'; menu.style.left = '0'; }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('file-input').addEventListener('change', e => {
-    Array.from(e.target.files).forEach(f => importFile(f));
+  document.getElementById('file-input').addEventListener('change', async e => {
+    const files = Array.from(e.target.files);
     e.target.value = '';
+    for (const f of files) await importFile(f); // one at a time: each import may open its own dialog
   });
 
   // Drag-drop on project view
@@ -1431,60 +2133,671 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (ev === 'drop') {
         e.preventDefault();
         if(dz) dz.classList.remove('drag-over');
-        if (state.currentProjectId) Array.from(e.dataTransfer.files).forEach(f => importFile(f));
+        if (state.currentProjectId) (async () => { for (const f of Array.from(e.dataTransfer.files)) await importFile(f); })();
       }
     });
   });
 });
 
-async function importFile(file) {
-  const name = file.name.toLowerCase();
-  let parsed;
-  try {
-    if (name.endsWith('.rescribe.json') || (name.endsWith('.json') && !name.endsWith('.anon.json'))) {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (data.format === 'rescribe') parsed = Parsers.rescribe(data);
-      else { alert('Unsupported JSON format'); return; }
-    } else if (name.endsWith('.txt')) {
-      parsed = Parsers.txt(await file.text());
-    } else if (name.endsWith('.docx')) {
-      parsed = await Parsers.docx(await file.arrayBuffer());
-    } else {
-      alert('Supported formats: .rescribe.json, .txt, .docx'); return;
+// ════════════════════════════════════════════════════════════════════
+// CORPUS — shared schema with Rescribe and the analysis tool (corpus-schema/corpus.schema.json)
+// ════════════════════════════════════════════════════════════════════
+const CORPUS_KINDS = ['interview', 'fieldnote', 'meeting', 'other'];
+// Elide-only document types; in the shared format they are kind "other" with meta.genre
+const DOC_GENRES = ['coding-table', 'quote-list'];
+const kindLabel = k => t('kind_' + k.replace(/-(\w)/g, (_, c) => c.toUpperCase()));
+const CORPUS_ROLES = ['interviewer', 'interviewee', 'other'];
+const CORPUS_LANGS = ['fr', 'en', 'de'];
+const segId = n => 'seg_' + String(n).padStart(4, '0');
+const newDocId = () => 'd_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+// Speakers list for sources that only carry names (txt, docx, legacy documents)
+function deriveSpeakers(segments, mirror) {
+  const speakers = [];
+  const byName = {};
+  segments.forEach((s, i) => {
+    let id = null;
+    if (s.speaker) {
+      if (!byName[s.speaker]) {
+        byName[s.speaker] = { id: `spk_${speakers.length + 1}`, role: s.isInterviewer ? 'interviewer' : 'interviewee', label: s.speaker };
+        speakers.push(byName[s.speaker]);
+      }
+      id = byName[s.speaker].id;
     }
-  } catch(e) { console.error(e); alert('Error reading file: ' + e.message); return; }
-
-  const docTitle = await askDocTitle(file.name);
-  if (docTitle === null) return;
-
-  const project = await DB.get('projects', state.currentProjectId);
-  const eb = project.entityBank || {};
-  const anonymized = parsed.segments.map(s => {
-    if (!Object.keys(eb).length) return { ...s, anonText: '', anonSpeaker: '', confirmed: false, tagMap: {} };
-    const anonText = preApplyEntityBank(s.text, eb);
-    const tagMap = {};
-    Object.entries(eb).forEach(([orig, info]) => {
-      if (anonText.includes(info.tag)) tagMap[orig] = info.tag;
-    });
-    return { ...s, anonText, anonSpeaker: '', confirmed: false, tagMap };
+    s.speakerId = id;
+    if (mirror?.[i]) mirror[i].speakerId = id;
   });
+  return speakers;
+}
+
+// One-time upgrade of documents imported before the corpus schema. Returns true if changed.
+function ensureCorpusFields(doc) {
+  let changed = false;
+  if (!doc.corpusId) { doc.corpusId = doc.id; changed = true; }
+  if (!doc.kind) { doc.kind = 'interview'; changed = true; }
+  if (!doc.createdAt) { doc.createdAt = doc.importedAt || new Date().toISOString(); changed = true; }
+  if (!Array.isArray(doc.provenance) || !doc.provenance.length) {
+    doc.provenance = [{ tool: 'import', version: VERSION, at: doc.importedAt || new Date().toISOString(), from: doc.fileName || '' }];
+    changed = true;
+  }
+  if (!doc.segIdsStable) {
+    // Legacy positional ids s_<i> → seg_0001…, assigned once and persisted
+    doc.segments.forEach((s, i) => {
+      const id = segId(i + 1);
+      s.id = id;
+      if (doc.anonymized?.[i]) doc.anonymized[i].id = id;
+    });
+    doc.segIdsStable = true;
+    changed = true;
+  }
+  if (!Array.isArray(doc.speakers)) { doc.speakers = deriveSpeakers(doc.segments, doc.anonymized); changed = true; }
+  return changed;
+}
+
+function corpusSkipReason(cd) {
+  if (!cd || cd.format !== 'corpus-doc') return 'invalid';
+  if (cd.kind === 'reference') return 'reference';
+  if (cd.sensitivity && cd.sensitivity !== 'raw') return 'notRaw';
+  if (!CORPUS_KINDS.includes(cd.kind || 'interview')) return 'invalid';
+  if (!(cd.segments || []).some(s => (s.text || '').trim())) return 'empty';
+  return null;
+}
+
+async function createDoc(project, parsed, { title, kind, fileName }) {
+  const now = new Date().toISOString();
+  const segments = parsed.segments;
+  if (!parsed.idsStable) segments.forEach((s, i) => { s.id = segId(i + 1); });
+  const speakers = parsed.speakers || deriveSpeakers(segments);
+  const eb = project.entityBank || {};
+  // Known entities are applied up front; ambiguous homonyms are left for the user to decide
+  const amb = ambiguousForms(eb);
+  const forms = Object.keys(eb).filter(w => !amb.has(normForm(w))).sort((a, b) => b.length - a.length);
+  const anonymized = segments.map(s => {
+    const seg = { ...s, anonSpeaker: '', confirmed: false, base: s.text, spans: [], keep: [] };
+    forms.forEach(w => propagateInSeg(seg, w, eb[w].tag));
+    syncSeg(seg);
+    return seg;
+  });
+  const id = newDocId();
   const doc = {
-    id: 'd_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5),
-    projectId: state.currentProjectId,
-    fileName: file.name,
-    title: docTitle,
+    id,
+    projectId: project.id,
+    fileName,
+    title,
     format: parsed.format,
-    importedAt: new Date().toISOString(),
+    importedAt: now,
     status: (project.engine === 'manual') ? 'done' : 'pending',
-    segments: parsed.segments,
+    segments,
     anonymized,
     entityBank: {},
     corrections: [],
+    corpusId: parsed.corpusId || id,
+    kind: CORPUS_KINDS.includes(kind) ? kind : DOC_GENRES.includes(kind) ? 'other' : 'interview',
+    createdAt: parsed.createdAt || now,
+    speakers,
+    meta: { ...(parsed.meta || {}), ...(DOC_GENRES.includes(kind) ? { genre: kind } : {}) },
+    provenance: parsed.provenance?.length ? parsed.provenance : [{ tool: 'import', version: VERSION, at: now, from: fileName }],
+    ext: parsed.ext || {},
+    segIdsStable: true,
   };
+  if (parsed.lang) doc.lang = parsed.lang;
+  if (parsed.table) doc.table = parsed.table;
+  if (parsed.sourceFormat) doc.sourceFormat = parsed.sourceFormat;
   await DB.put('documents', doc);
+  return doc;
+}
+
+async function importFile(file) {
+  const name = file.name.toLowerCase();
+  const project = await DB.get('projects', state.currentProjectId);
+  try {
+    if (name.endsWith('.json')) {
+      await importJsonData(JSON.parse(await file.text()), file.name, project);
+    } else if (/\.(csv|xlsx|xls)$/.test(name)) {
+      await importSpreadsheet(file, project);
+    } else {
+      let rawText;
+      if (name.endsWith('.txt') || name.endsWith('.md')) rawText = await file.text();
+      else if (name.endsWith('.docx')) rawText = await docxText(await file.arrayBuffer());
+      // PDF would plug in here: `else if (name.endsWith('.pdf')) rawText = await pdfText(await file.arrayBuffer());`
+      // with pdf.js lazy-loaded like loadMammoth(), and per-page segments carrying `page`.
+      else { alert('Supported formats: .rescribe.json, .corpus.json, .txt, .md, .docx, .csv, .xlsx, .xls'); return; }
+      const answer = await askDocTitle(file.name, { kind: 'interview' });
+      if (!answer) return;
+      const parsed = ['interview', 'meeting'].includes(answer.kind) ? Parsers.txt(rawText) : Parsers.paragraphs(rawText);
+      await createDoc(project, parsed, { title: answer.title, kind: answer.kind, fileName: file.name });
+    }
+  } catch (e) { console.error(e); alert('Error reading file: ' + e.message); return; }
   await renderDocs(state.currentProjectId, project);
   writeProjectFile(state.currentProjectId);
+}
+
+// .rescribe.json (with or without `corpus`), .corpus.json document or bundle
+async function importJsonData(data, fileName, project) {
+  const items = [];
+  if (data.format === 'rescribe') {
+    if (data.corpus && !corpusSkipReason(data.corpus)) items.push({ cd: data.corpus });
+    else items.push({ parsed: Parsers.rescribe(data) });
+  } else if (data.format === 'corpus-doc') {
+    items.push({ cd: data });
+  } else if (data.format === 'corpus-bundle') {
+    // data.ext.rescribe holds Rescribe's raw, re-editable project: deliberately never read nor stored
+    (data.documents || []).forEach(cd => items.push({ cd }));
+  } else {
+    alert('Unsupported JSON format');
+    return;
+  }
+
+  const docs = await DB.getByIndex('documents', 'projectId', project.id);
+  const existing = new Set(docs.map(d => d.corpusId || d.id));
+  const ok = [], skipped = [];
+  items.forEach(it => {
+    if (it.parsed) { ok.push({ parsed: it.parsed, kind: 'interview', title: it.parsed.title }); return; }
+    const reason = corpusSkipReason(it.cd) || (existing.has(it.cd.id) ? 'duplicate' : null);
+    if (reason) { skipped.push({ title: it.cd?.title || it.cd?.id || '?', reason }); return; }
+    const parsed = Parsers.corpusDoc(it.cd);
+    existing.add(parsed.corpusId);
+    ok.push({ parsed, kind: parsed.kind, title: parsed.title });
+  });
+
+  if (!ok.length) {
+    showInfoModal(t('importCorpusTitle'), `<p>${t('noDocsToImport')}</p>${skippedHtml(skipped)}`);
+    return;
+  }
+  let answers;
+  if (ok.length === 1 && !skipped.length) {
+    const a = await askDocTitle(fileName, { kind: ok[0].kind, title: ok[0].title });
+    if (!a) return;
+    answers = [a];
+  } else {
+    answers = await askBundleImport(ok, skipped);
+    if (!answers) return;
+  }
+  for (let i = 0; i < ok.length; i++) {
+    await createDoc(project, ok[i].parsed, { title: answers[i].title, kind: answers[i].kind, fileName });
+  }
+}
+
+function kindSelectHtml(id, value, withGenres = false) {
+  const kinds = withGenres ? [...DOC_GENRES, ...CORPUS_KINDS] : CORPUS_KINDS;
+  return `<select id="${id}" class="input" style="width:100%">${kinds.map(k =>
+    `<option value="${k}" ${k === value ? 'selected' : ''}>${kindLabel(k)}</option>`).join('')}</select>`;
+}
+
+function skippedHtml(skipped) {
+  if (!skipped.length) return '';
+  return `<p style="font-size:.78rem;color:var(--muted);margin-top:10px">${t('importSkipped')} :</p>
+    <ul style="font-size:.78rem;color:var(--muted);margin:4px 0 0 18px">${skipped.map(x =>
+      `<li>${escHtml(x.title)} — ${t('skip_' + x.reason)}</li>`).join('')}</ul>`;
+}
+
+function showInfoModal(title, html) {
+  showModal(title, html, 'OK', () => closeModal());
+}
+
+function askBundleImport(ok, skipped) {
+  return new Promise(resolve => {
+    state.modalCancelFn = () => resolve(null);
+    const rows = ok.map((it, i) => `
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input id="bi-title-${i}" class="input" style="flex:2" value="${escAttr(it.title || '')}" placeholder="${kindLabel(it.kind)} ${i + 1}">
+        <div style="flex:1">${kindSelectHtml('bi-kind-' + i, it.kind)}</div>
+      </div>`).join('');
+    const body = `<p style="font-size:.82rem;color:var(--muted);margin-bottom:10px">${t('bundleImportIntro').replace('{n}', ok.length)}</p>
+      ${rows}${skippedHtml(skipped)}`;
+    showModal(t('importCorpusTitle'), body, t('importBtn'), () => {
+      const answers = ok.map((it, i) => ({
+        title: document.getElementById('bi-title-' + i).value.trim() || it.parsed.corpusId || `${kindLabel(it.kind)} ${i + 1}`,
+        kind: document.getElementById('bi-kind-' + i).value,
+      }));
+      state.modalCancelFn = null;
+      closeModal();
+      resolve(answers);
+    });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// SPREADSHEETS — .xlsx/.xls/.csv lists of quotes. Each cell to anonymize is a segment,
+// so tags, propagation, review and the export scan work unchanged. doc.table keeps the layout:
+//   columns: [{ key, name, role: text|speaker|keep }]   rows: [{ id, segs: {key: segId}, values: {key: str}, speaker }]
+// ════════════════════════════════════════════════════════════════════
+const SHEETJS_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+const SPEAKER_COL_RE = /particip|enqu[eê]t|interview|locut|speaker|respond|r[ée]pondant|personne|pseudo|^nom$|^name$|^qui$/i;
+const TEXT_COL_RE = /citation|verbatim|extrait|quote|texte|text|comment|r[ée]ponse|answer|propos|excerpt/i;
+const COLUMN_ROLES = ['text', 'speaker', 'keep', 'skip'];
+
+function loadSheetJS() {
+  return new Promise((res, rej) => {
+    if (window.XLSX) return res();
+    const s = document.createElement('script');
+    s.src = SHEETJS_URL;
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+function decodeText(buf) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf).replace(/^\uFEFF/, ''); }
+  catch { return new TextDecoder('windows-1252').decode(buf); }
+}
+
+// Delimiter that occurs most often outside quotes in the first lines
+function detectDelimiter(text) {
+  const sample = text.split(/\r?\n/).slice(0, 20).join('\n');
+  let best = ',', bestCount = -1;
+  for (const d of [',', ';', '\t', '|']) {
+    let inQ = false, n = 0;
+    for (const ch of sample) {
+      if (ch === '"') inQ = !inQ;
+      else if (!inQ && ch === d) n++;
+    }
+    if (n > bestCount) { best = d; bestCount = n; }
+  }
+  return best;
+}
+
+// RFC 4180: quoted fields may contain the delimiter, newlines and doubled quotes
+function parseCsv(text, delim) {
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"' && field === '') {
+      inQ = true;
+    } else if (c === delim) {
+      row.push(field); field = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); rows.push(row); row = []; field = '';
+    } else {
+      field += c;
+    }
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function toCsv(rows, delim) {
+  const esc = v => {
+    const s = String(v ?? '');
+    return /["\r\n]/.test(s) || s.includes(delim) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return rows.map(r => r.map(esc).join(delim)).join('\r\n');
+}
+
+// A cell that looks like data, not like a column title: number, timecode, short code (+, -, ✓…)
+const DATA_CELL_RE = /^(?:\d+(?:[.,]\d+)?|\d{1,2}:\d{2}(?::\d{2})?|[+\-–=?!*✓✗]{1,3})$/;
+
+// Rows → { headers, body }. Handles coding tables: title rows, no header row, theme rows between data.
+function sheetToGrid(aoa) {
+  const rows = aoa.map(r => (r || []).map(v => (v == null ? '' : String(v)).trim())).filter(r => r.some(Boolean));
+  if (!rows.length) return null;
+  const width = Math.max(...rows.map(r => r.length));
+  const filled = r => r.filter(Boolean).length;
+  const pad = r => Array.from({ length: width }, (_, i) => r[i] || '');
+  // First row with at least two cells: the header row, unless it already looks like data
+  const first = width === 1 ? 0 : rows.findIndex(r => filled(r) >= 2);
+  if (first < 0) return null;
+  const cand = rows[first];
+  const isHeader = !cand.some(v => v && (DATA_CELL_RE.test(v) || v.length > 60));
+  const dataRows = rows.slice(isHeader ? first + 1 : first);
+  // Theme rows: one filled cell in the first column, when that column otherwise holds ids/codes
+  const multi = dataRows.filter(r => filled(r) >= 2);
+  const col0Data = multi.length > 0 && multi.filter(r => DATA_CELL_RE.test(r[0] || '')).length >= 0.8 * multi.length;
+  const isSection = r => width >= 2 && col0Data && filled(r) === 1 && !!r[0];
+  let section = '';
+  // Without a header row, leading single-cell rows are the theme of the first rows (above a header: table title)
+  if (!isHeader) rows.slice(0, first).forEach(r => { if (isSection(r)) section = r[0]; });
+  const items = [];
+  dataRows.forEach(r => {
+    if (isSection(r)) section = r[0];
+    else items.push({ cells: pad(r), section });
+  });
+  const withSection = items.some(x => x.section);
+  const body = items.map(x => (withSection ? [...x.cells, x.section] : x.cells));
+  const guessName = i => {
+    const vals = body.map(r => r[i]).filter(Boolean);
+    if (!vals.length) return `${t('columnLabel')} ${i + 1}`;
+    if (vals.every(v => /^\d+(?:[.,]\d+)?$/.test(v))) return t('colName_number');
+    if (vals.every(v => /^\d{1,2}:\d{2}(?::\d{2})?$/.test(v))) return t('colName_time');
+    if (vals.reduce((n, v) => n + v.length, 0) / vals.length > 40) return t('colName_quote');
+    if (vals.every(v => v.length <= 3)) return t('colName_code');
+    return `${t('columnLabel')} ${i + 1}`;
+  };
+  const headers = Array.from({ length: width }, (_, i) => (isHeader ? cand[i] : '') || guessName(i));
+  if (withSection) headers.push(t('colName_section'));
+  // Unique names (they become keys of the exported table)
+  const seen = {};
+  return { headers: headers.map(h => (seen[h] = (seen[h] || 0) + 1) > 1 ? `${h} ${seen[h]}` : h), body };
+}
+
+function guessColumnRoles(headers, body) {
+  let speakerTaken = false;
+  const avg = i => {
+    const vals = body.map(r => r[i]).filter(Boolean);
+    return vals.length ? vals.reduce((n, v) => n + v.length, 0) / vals.length : 0;
+  };
+  // Theme/category columns repeat the same labels: keep them as is
+  const repeats = i => {
+    const vals = body.map(r => r[i]).filter(Boolean);
+    return vals.length >= 3 && new Set(vals).size <= vals.length / 2;
+  };
+  const roles = headers.map((h, i) => {
+    if (!body.some(r => r[i])) return 'skip';
+    if (!speakerTaken && SPEAKER_COL_RE.test(h)) { speakerTaken = true; return 'speaker'; }
+    if (TEXT_COL_RE.test(h)) return 'text';
+    if (h === t('colName_section') || repeats(i)) return 'keep';
+    return avg(i) > 40 ? 'text' : 'keep';
+  });
+  if (!roles.includes('text')) {
+    let best = -1;
+    roles.forEach((r, i) => { if (r === 'keep' && (best < 0 || avg(i) > avg(best))) best = i; });
+    if (best >= 0) roles[best] = 'text';
+  }
+  return roles;
+}
+
+function tableToParsed(grid, roles) {
+  const columns = grid.headers.map((name, i) => ({ key: `c${i}`, name, role: roles[i] })).filter(c => c.role !== 'skip');
+  const segments = [], rows = [];
+  grid.body.forEach((r, ri) => {
+    const row = { id: `row_${String(ri + 1).padStart(4, '0')}`, segs: {}, values: {} };
+    const spkCol = columns.find(c => c.role === 'speaker');
+    if (spkCol) row.speaker = r[+spkCol.key.slice(1)];
+    columns.forEach(c => {
+      const v = r[+c.key.slice(1)];
+      if (c.role === 'keep') row.values[c.key] = v;
+      else if (c.role === 'text' && v) {
+        const id = segId(segments.length + 1);
+        segments.push({ id, speakerId: null, speaker: row.speaker || '', isInterviewer: false, timestamp: null, text: v });
+        row.segs[c.key] = id;
+      }
+    });
+    rows.push(row);
+  });
+  return { segments, idsStable: true, format: 'table', table: { columns, rows } };
+}
+
+async function importSpreadsheet(file, project) {
+  const ext = file.name.toLowerCase().split('.').pop();
+  const buf = await file.arrayBuffer();
+  let sheets;
+  if (ext === 'csv') {
+    const text = decodeText(buf);
+    const delimiter = detectDelimiter(text);
+    sheets = [{ name: file.name.replace(/\.csv$/i, ''), aoa: parseCsv(text, delimiter), delimiter }];
+  } else {
+    await loadSheetJS();
+    const wb = XLSX.read(buf, { type: 'array' });
+    sheets = wb.SheetNames.map(n => ({ name: n, aoa: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false, defval: '' }) }));
+  }
+  const usable = sheets.map(s => ({ ...s, grid: sheetToGrid(s.aoa) })).filter(s => s.grid?.body.length);
+  if (!usable.length) { showInfoModal(t('sheetImportTitle'), `<p>${t('noRowsToImport')}</p>`); return; }
+  const workbookId = 'wb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const speakerCounter = {};
+  for (const [sheetIndex, s] of usable.entries()) {
+    const a = await askSheetImport(file.name, s, usable.length > 1);
+    if (a === null) return;
+    if (!a.include) continue;
+    const parsed = tableToParsed({ ...s.grid, headers: a.names }, a.roles);
+    Object.assign(parsed.table, { sheet: s.name, workbookId, sheetIndex });
+    if (s.delimiter) parsed.table.delimiter = s.delimiter;
+    parsed.sourceFormat = ext;
+    const doc = await createDoc(project, parsed, { title: a.title, kind: a.kind, fileName: file.name });
+    assignWorkbookSpeakerLabels(doc.speakers, speakerCounter);
+    await DB.put('documents', doc);
+  }
+}
+
+// Same participant = same tag in every sheet of the workbook ([ENQ·E_n] by first appearance)
+function assignWorkbookSpeakerLabels(speakers, counter) {
+  speakers.forEach(s => {
+    if (!counter[s.label]) counter[s.label] = `[ENQ·E_${Object.keys(counter).length + 1}]`;
+    s.anonLabel = counter[s.label];
+  });
+}
+
+// Excel sheet names: no []:*?/\, 31 characters max, unique (case-insensitive)
+function uniqueSheetName(title, used) {
+  const base = (title || '').replace(/[\[\]:*?/\\]/g, ' ').trim().slice(0, 31) || 'Feuille';
+  let name = base;
+  for (let k = 2; used.has(name.toLowerCase()); k++) name = `${base.slice(0, 31 - ` (${k})`.length)} (${k})`;
+  used.add(name.toLowerCase());
+  return name;
+}
+
+function askSheetImport(fileName, sheet, multi) {
+  return new Promise(resolve => {
+    state.modalCancelFn = () => resolve(null);
+    const { headers, body } = sheet.grid;
+    const roles = guessColumnRoles(headers, body);
+    const rows = headers.map((h, i) => {
+      const sample = (body.find(r => r[i]) || [])[i] || '';
+      return `<tr>
+        <td style="padding:3px 4px"><input type="text" id="col-name-${i}" class="input" value="${escAttr(h)}" style="width:100%;box-sizing:border-box;padding:5px 8px"></td>
+        <td style="padding:3px 4px"><select id="col-role-${i}" class="input" style="width:100%;padding:5px 4px;font-size:.78rem">${COLUMN_ROLES.map(r =>
+          `<option value="${r}" ${r === roles[i] ? 'selected' : ''}>${t('colRole_' + r)}</option>`).join('')}</select></td>
+        <td style="padding:3px 4px;color:var(--muted);overflow-wrap:anywhere">${escHtml(sample.length > 60 ? sample.slice(0, 60) + '…' : sample)}</td></tr>`;
+    }).join('');
+    const body_ = `
+      ${multi ? `<label style="display:flex;gap:6px;align-items:center;font-weight:600;margin-bottom:8px">
+        <input type="checkbox" id="sheet-include" checked> ${t('importThisSheet')} « ${escHtml(sheet.name)} »</label>` : ''}
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px">${t('renameNote')}</p>
+      <input id="doc-title-input" class="input" placeholder="Ex: Citations_1" value="${multi ? escAttr(sheet.name) : ''}" style="width:100%;box-sizing:border-box">
+      <p style="font-size:.75rem;color:var(--faint);margin-top:6px">${t('renameOrig')} : <em>${escHtml(fileName)}</em> · ${body.length} ${t('rowsLabel')}</p>
+      <label style="display:block;font-size:.8rem;color:var(--muted);margin:12px 0 4px">${t('kindLabel')}</label>
+      ${kindSelectHtml('doc-kind-input', 'coding-table', true)}
+      <label style="display:block;font-size:.8rem;color:var(--muted);margin:12px 0 4px">${t('columnsLabel')}</label>
+      <div style="max-height:300px;overflow:auto"><table style="font-size:.78rem;border-collapse:collapse;width:100%;table-layout:fixed">
+        <colgroup><col style="width:28%"><col style="width:42%"><col style="width:30%"></colgroup>
+        <tr style="color:var(--muted);text-align:left"><th style="padding:3px 4px">${t('columnLabel')}</th><th style="padding:3px 4px">${t('roleLabel')}</th><th style="padding:3px 4px">${t('exampleLabel')}</th></tr>
+        ${rows}</table></div>
+      <p id="sheet-error" style="color:var(--err);font-size:.78rem;margin-top:6px"></p>`;
+    showModal(t('sheetImportTitle'), body_, t('importBtn'), () => {
+      const include = multi ? document.getElementById('sheet-include').checked : true;
+      const picked = headers.map((_, i) => document.getElementById('col-role-' + i).value);
+      const names = headers.map((h, i) => document.getElementById('col-name-' + i).value.trim() || h);
+      const inp = document.getElementById('doc-title-input');
+      const title = inp.value.trim();
+      if (include) {
+        if (!title) { inp.style.borderColor = 'var(--err)'; inp.focus(); return; }
+        if (!picked.includes('text')) { document.getElementById('sheet-error').textContent = t('needTextColumn'); return; }
+      }
+      const kind = document.getElementById('doc-kind-input').value;
+      state.modalCancelFn = null;
+      closeModal();
+      resolve({ include, title, kind, roles: picked, names });
+    });
+  });
+}
+
+// ── Table view in the editor ──
+function tableSpeakerLabels(doc, project) {
+  const byId = Object.fromEntries(anonSpeakers(doc, project.entityBank || {}).map(s => [s.id, s.label]));
+  const idByName = Object.fromEntries((doc.speakers || []).map(s => [s.label, s.id]));
+  return name => (name ? byId[idByName[name]] || '' : '');
+}
+
+function renderTablePanel(doc, project, amb) {
+  const anon = document.getElementById('panel-anon');
+  const idxById = Object.fromEntries(doc.segments.map((s, i) => [s.id, i]));
+  const spkLabel = tableSpeakerLabels(doc, project);
+  const cols = doc.table.columns;
+  const head = cols.map(c => `<th data-col="${c.key}" onclick="sortTable('${c.key}')">${escHtml(c.name)} <span class="tbl-sort"></span></th>`).join('');
+  const body = doc.table.rows.map(r => `<tr data-row="${r.id}">${cols.map(c => {
+    if (c.role === 'text') {
+      const i = idxById[r.segs[c.key]];
+      return i == null ? '<td></td>'
+        : `<td class="seg tbl-text" data-idx="${i}"><div class="seg-body" id="abody_${i}">${renderSeg(doc.anonymized[i], true, amb)}</div></td>`;
+    }
+    if (c.role === 'speaker') {
+      return r.speaker ? `<td class="tbl-spk"><mark class="tag tag-spk" data-tag="SPK" data-original="${escAttr(r.speaker)}">${escHtml(spkLabel(r.speaker))}</mark></td>` : '<td></td>';
+    }
+    return `<td class="tbl-keep" contenteditable="true" data-row="${r.id}" data-col="${c.key}"
+      onblur="saveTableCell(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">${escHtml(r.values[c.key] || '')}</td>`;
+  }).join('')}<td><button class="btn btn-icon btn-ghost tbl-del" title="${escAttr(t('deleteRow'))}" onclick="deleteTableRow('${r.id}')">✕</button></td></tr>`).join('');
+  const v = state.tableView || {};
+  anon.innerHTML = `
+    <div class="tbl-tools">
+      <input type="text" id="tbl-search" class="input" placeholder="${escAttr(t('tableSearch'))}" value="${escAttr(v.q || '')}" oninput="applyTableView()">
+      <select id="tbl-scope" class="input" onchange="applyTableView()">
+        <option value="">${t('allColumns')}</option>
+        ${cols.map(c => `<option value="${c.key}" ${c.key === v.scope ? 'selected' : ''}>${escHtml(c.name)}</option>`).join('')}
+      </select>
+      <span id="tbl-count" class="tbl-count"></span>
+    </div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr>${head}<th></th></tr></thead><tbody>${body}</tbody></table></div>`;
+  applyTableView();
+}
+
+// Search (case/accent-insensitive, on what is displayed), column scope and sort — display only
+function applyTableView() {
+  const q = document.getElementById('tbl-search');
+  if (!q) return;
+  const v = state.tableView = state.tableView || {};
+  v.q = q.value;
+  v.scope = document.getElementById('tbl-scope').value;
+  const ths = [...document.querySelectorAll('#panel-anon .tbl thead th')];
+  const colIndex = key => ths.findIndex(th => th.dataset.col === key);
+  const tbody = document.querySelector('#panel-anon .tbl tbody');
+  const rows = [...tbody.rows];
+  const needle = normForm(v.q);
+  let shown = 0;
+  rows.forEach(tr => {
+    const cells = v.scope ? [tr.cells[colIndex(v.scope)]] : [...tr.cells];
+    const ok = !needle || normForm(cells.map(c => c?.textContent || '').join(' ')).includes(needle);
+    tr.style.display = ok ? '' : 'none';
+    if (ok) shown++;
+  });
+  if (v.sortCol && colIndex(v.sortCol) >= 0) {
+    const ci = colIndex(v.sortCol);
+    rows.sort((a, b) => (a.cells[ci]?.textContent || '').trim()
+      .localeCompare((b.cells[ci]?.textContent || '').trim(), undefined, { numeric: true, sensitivity: 'base' }) * v.dir);
+    rows.forEach(r => tbody.appendChild(r));
+  }
+  ths.forEach(th => {
+    const s = th.querySelector('.tbl-sort');
+    if (s) s.textContent = th.dataset.col === v.sortCol ? (v.dir > 0 ? '▲' : '▼') : '';
+  });
+  document.getElementById('tbl-count').textContent = `${shown} / ${rows.length}`;
+}
+
+function sortTable(key) {
+  const v = state.tableView = state.tableView || {};
+  v.dir = v.sortCol === key ? -(v.dir || 1) : 1;
+  v.sortCol = key;
+  applyTableView();
+}
+
+async function saveTableCell(el) {
+  const doc = await DB.get('documents', state.currentDocId);
+  const row = doc?.table?.rows.find(r => r.id === el.dataset.row);
+  if (!row) return;
+  const val = el.textContent.trim();
+  if ((row.values[el.dataset.col] || '') === val) return;
+  const project = await DB.get('projects', doc.projectId);
+  pushUndo(doc, project);
+  row.values[el.dataset.col] = val;
+  await DB.put('documents', doc);
+  flashAutosave();
+  writeProjectFile(project.id);
+}
+
+async function deleteTableRow(rowId) {
+  const doc = await DB.get('documents', state.currentDocId);
+  const row = doc?.table?.rows.find(r => r.id === rowId);
+  if (!row) return;
+  const project = await DB.get('projects', doc.projectId);
+  ensureModel(doc);
+  pushUndo(doc, project);
+  const ids = new Set(Object.values(row.segs));
+  const keep = doc.segments.map((s, i) => (ids.has(s.id) ? -1 : i)).filter(i => i >= 0);
+  doc.segments = keep.map(i => doc.segments[i]);
+  doc.anonymized = keep.map(i => doc.anonymized[i]);
+  doc.table.rows = doc.table.rows.filter(r => r !== row);
+  // Speakers are kept even if unused: their [ENQ·E_n] numbering must not shift
+  await DB.put('documents', doc);
+  renderEditorPanels(doc, project);
+  flashAutosave();
+  writeProjectFile(project.id);
+}
+
+// ── Export: same columns, anonymized text, speakers as tags ──
+function tableToAoa(doc, project) {
+  const idxById = Object.fromEntries(doc.segments.map((s, i) => [s.id, i]));
+  const spkLabel = tableSpeakerLabels(doc, project);
+  const cols = doc.table.columns;
+  return [cols.map(c => c.name), ...doc.table.rows.map(r => cols.map(c => {
+    if (c.role === 'text') { const i = idxById[r.segs[c.key]]; return i == null ? '' : stripPseudo(doc.anonymized[i].anonText); }
+    if (c.role === 'speaker') return spkLabel(r.speaker);
+    return r.values[c.key] || '';
+  }))];
+}
+
+async function workbookDocs(doc) {
+  const wbId = doc?.table?.workbookId;
+  if (!wbId) return [];
+  return (await DB.getByIndex('documents', 'projectId', doc.projectId))
+    .filter(d => d.table?.workbookId === wbId)
+    .sort((a, b) => (a.table.sheetIndex ?? 0) - (b.table.sheetIndex ?? 0));
+}
+
+// Every sheet imported from the same workbook, one anonymized sheet each, in the original order
+async function exportWorkbook(force = false) {
+  const doc = await DB.get('documents', state.currentDocId);
+  const docs = await workbookDocs(doc);
+  if (!docs.length) return;
+  const project = await DB.get('projects', doc.projectId);
+  docs.forEach(d => { ensureModel(d); ensureCorpusFields(d); });
+  if (!force) {
+    const notReady = docs.map(d => {
+      if (d.status !== 'validated') return { title: d.title, reason: t('status_' + d.status) };
+      const n = d.anonymized.reduce((k, sg) => k + sg.spans.filter(x => x.review).length, 0);
+      return n ? { title: d.title, reason: t('excludedReview').replace('{n}', n) } : null;
+    }).filter(Boolean);
+    if (notReady.length) {
+      showModal(t('workbookNotReadyTitle'),
+        `<p style="font-size:.82rem">${t('workbookNotReadyIntro')}</p>
+         <ul style="font-size:.8rem;color:var(--muted);margin:8px 0 0 18px">${notReady.map(x =>
+           `<li>${escHtml(x.title)} — ${escHtml(String(x.reason))}</li>`).join('')}</ul>`,
+        t('exportAnyway'), () => { closeModal(); exportWorkbook(true); }, true);
+      return;
+    }
+  }
+  await loadSheetJS();
+  const wb = XLSX.utils.book_new();
+  const used = new Set();
+  docs.forEach(d => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tableToAoa(d, project)), uniqueSheetName(d.title, used)));
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  // Named after the project: the original file name may itself contain a name
+  const base = (project.name || 'classeur').replace(/[^\p{L}\p{N}_-]+/gu, '_');
+  saveBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${base}.elide.xlsx`);
+  showToast(t('workbookExported').replace('{n}', docs.length));
+}
+
+async function exportTable(fmt) {
+  const doc = await DB.get('documents', state.currentDocId);
+  if (!doc?.table) return;
+  const project = await DB.get('projects', doc.projectId);
+  ensureModel(doc);
+  ensureCorpusFields(doc);
+  const aoa = tableToAoa(doc, project);
+  const base = (doc.title || 'table').replace(/[^\p{L}\p{N}_-]+/gu, '_');
+  if (fmt === 'csv') {
+    // BOM so that Excel opens the UTF-8 file with the right accents
+    download('\uFEFF' + toCsv(aoa, doc.table.delimiter || ','), `${base}.elide.csv`, 'text/csv;charset=utf-8');
+    return;
+  }
+  await loadSheetJS();
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), uniqueSheetName(doc.title, new Set()));
+  const out = XLSX.write(wb, { bookType: fmt === 'xls' ? 'biff8' : 'xlsx', type: 'array' });
+  const mime = fmt === 'xls' ? 'application/vnd.ms-excel' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  saveBlob(new Blob([out], { type: mime }), `${base}.elide.${fmt}`);
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1538,6 +2851,10 @@ async function openEditor(docId) {
 
   // Open editor
   state.currentDocId = docId;
+  _currentEntityBank = proj.entityBank || {};
+  // One-time migration to the span model (the anonymized text itself is left unchanged)
+  if (ensureModel(doc) | ensureCorpusFields(doc)) await DB.put('documents', doc);
+  _currentDocLang = proj.docLang || 'fr';
   if (proj.model) { state.model = proj.model; updateMainDot(); }
   document.getElementById('ed-doc-name').textContent = doc.title || doc.fileName;
   document.getElementById('ed-proj-name').textContent = proj.name;
@@ -1564,6 +2881,8 @@ async function openEditor(docId) {
 
   navigate('editor');
   undoStack.length = 0;
+  state.lastReviewKey = -1;
+  state.tableView = {};
 
   renderEditorPanels(doc, proj);
   document.getElementById('panel-anon')?.scrollTo(0, 0);
@@ -1587,6 +2906,14 @@ function renderEditorPanels(doc, project) {
   // Show legend button only when hints are active
   const legendBtn = document.getElementById('hint-legend-btn');
   if (legendBtn) legendBtn.style.display = '';
+  ensureModel(doc);
+  const amb = ambiguousForms(_currentEntityBank);
+  document.querySelectorAll('.tbl-only').forEach(el => { el.style.display = doc.table ? '' : 'none'; });
+  document.querySelectorAll('.wb-only').forEach(el => { el.style.display = 'none'; });
+  workbookDocs(doc).then(ds => {
+    if (ds.length > 1 && state.currentDocId === doc.id) document.querySelectorAll('.wb-only').forEach(el => { el.style.display = ''; });
+  });
+  if (doc.table) { renderTablePanel(doc, project, amb); updateReviewCounter(); return; }
 
   doc.segments.forEach((seg, i) => {
     const anonSeg = doc.anonymized[i] || seg;
@@ -1596,14 +2923,12 @@ function renderEditorPanels(doc, project) {
     // Interviewers always show their original label (no anonymization needed)
     const spkLabel = seg.isInterviewer ? null : (anonSeg.anonSpeaker || anonymizeSpeaker(seg, project));
     const spkHtml = spkLabel
-      ? `<mark class="tag tag-spk" data-tag="SPK">${escHtml(spkLabel)}</mark>`
+      ? `<mark class="tag tag-spk" data-tag="SPK" data-original="${escAttr(seg.speaker || '')}">${escHtml(spkLabel)}</mark>`
       : (seg.speaker ? escHtml(seg.speaker) : '');
     const tsHtml = seg.timestamp != null ? `<span class="seg-ts">${fmtTs(seg.timestamp)}</span>` : '';
 
-    // Text to display: anonText if available, else raw
     const rawText = doc.segments[i].text;
-    const displayText = anonSeg.anonText || rawText;
-    const bodyHtml = renderBalises(displayText, anonSeg.tagMap || {}, showHints);
+    const bodyHtml = renderSeg(anonSeg, showHints, amb);
 
     aEl.innerHTML = `
       <div class="seg-speaker">
@@ -1615,6 +2940,7 @@ function renderEditorPanels(doc, project) {
       <div class="seg-orig" id="sorig_${i}">${escHtml(rawText)}</div>`;
     anon.appendChild(aEl);
   });
+  updateReviewCounter();
 }
 
 function toggleSegOrig(btn) {
@@ -1689,20 +3015,22 @@ async function runAnonymization(doc, project) {
     await Promise.all(batch.map(async (seg, bi) => {
       const idx = i + bi;
       const anonSpeaker = speakerMap[seg.speaker] || '';
-      let anonText, tagMap;
+      let anonText, tagMap = {};
       if (engine === 'ner') {
         ({ anonText, tagMap } = await anonymizeWithNer(seg.text, project.entityBank || {}));
       } else if (engine === 'spacy' || engine === 'camembert') {
         ({ anonText, tagMap } = await anonymizeWithPyNer(seg.text, project.entityBank || {}, engine, project.docLang || 'fr'));
       } else {
         anonText = await anonymizeSegment(seg.text, project);
-        tagMap = inferTagMap(seg.text, anonText);
       }
-      doc.anonymized[idx] = { ...seg, anonText, anonSpeaker, confirmed: false, tagMap };
+      const { base, spans } = alignAnon(seg.text, anonText, tagMap, 'llm');
+      const aSeg = { ...seg, anonSpeaker, confirmed: false, base, spans, keep: [] };
+      syncSeg(aSeg);
+      doc.anonymized[idx] = aSeg;
       done++;
       updateProgress();
       const bodyEl = document.getElementById(`abody_${idx}`);
-      if (bodyEl) bodyEl.innerHTML = renderBalises(anonText, tagMap, true);
+      if (bodyEl) bodyEl.innerHTML = renderSeg(aSeg, true);
     }));
     await DB.put('documents', doc);
   }
@@ -1729,13 +3057,18 @@ async function runAnonymization(doc, project) {
 
 async function validateDoc(docId) {
   const doc = await DB.get('documents', docId);
+  ensureModel(doc);
+  const pending = doc.anonymized.reduce((n, s) => n + s.spans.filter(x => x.review).length, 0);
+  if (pending) { showToast(t('validateBlockedReview').replace('{n}', pending)); return false; }
   doc.status = 'validated';
+  doc.review = { ...(doc.review || {}), validatedAt: new Date().toISOString() };
   await DB.put('documents', doc);
   const project = await DB.get('projects', doc.projectId);
   await renderDocs(doc.projectId, project);
   writeProjectFile(project.id);
   const label = document.getElementById('ed-progress-label');
   if (label && state.currentDocId === docId) label.textContent = t('validated');
+  return true;
 }
 
 async function exportProjectJson(projectId) {
@@ -1745,6 +3078,347 @@ async function exportProjectJson(projectId) {
   const json = JSON.stringify(data, null, 2);
   const filename = `${project.name.replace(/[^a-z0-9]/gi,'_')}.elide.json`;
   await saveBlob(new Blob([json], { type: 'application/json' }), filename, 'Elide project', '.json');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// EXPORT FOR ANALYSIS — corpus-bundle of validated, anonymized documents only.
+// Built field by field from a whitelist: no raw text, no pseudonym key, no file name.
+// ════════════════════════════════════════════════════════════════════
+const ENTITY_TYPE_MAP = {
+  PERS: 'PERS', PERSON: 'PERS', PRÉNOM: 'PERS', NOM: 'PERS', ENQ: 'PERS',
+  LIEU: 'LIEU', VILLE: 'LIEU', LOC: 'LIEU',
+  ORG: 'ORG',
+  DATE: 'DATE', DATE_PRÉCISE: 'DATE',
+};
+const SRC_EXT = { rescribe: 'rescribe.json', corpus: 'corpus.json', txt: 'txt', docx: 'docx', csv: 'csv', xlsx: 'xlsx', xls: 'xls' };
+const META_WHITELIST = ['studyTitle', 'date', 'mode', 'genre'];
+// Never present in an analysis bundle, whatever the nesting
+const FORBIDDEN_KEYS = new Set(['entityBank', 'tagMap', 'base', 'spans', 'keep', 'fileName', 'corrections',
+  'anonText', 'anonymized', 'html', 'baseline', 'settings', 'interviewTitle', 'transcribedBy', 'custom']);
+// Generic role names used as speaker labels — not identifying
+const GENERIC_SPEAKERS = new Set(['interviewer', 'interviewee', 'intervieweur', 'enqueteur', 'enqueteuse', 'enquetrice',
+  'enquete', 'enquetee', 'participant', 'participante', 'chercheur', 'chercheuse', 'speaker', 'locuteur', 'locutrice',
+  'question', 'reponse', 'moderateur', 'moderatrice', 'moderator', 'unknown', 'inconnu', 'interviewer i']);
+// Tag tokens are masked before scanning so a bank value can't match inside "[PERS_1]"
+const SCAN_TOKEN_RE = /\[[A-ZÉÈÀÙÎÏÔÂ_·]+(?:_\d+)?\]/g;
+
+async function sha256hex16(str) {
+  try {
+    if (!(window.crypto && crypto.subtle)) return undefined;
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str || ''));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+  } catch { return undefined; }
+}
+
+function isoOr(v, fallback) {
+  return (typeof v === 'string' || typeof v === 'number') && !isNaN(Date.parse(v)) ? new Date(v).toISOString() : fallback;
+}
+
+function tsSeconds(v) {
+  if (typeof v === 'number' && isFinite(v)) return v;
+  if (typeof v === 'string' && /^\d+(:\d{1,2}){1,2}$/.test(v)) return v.split(':').reduce((a, x) => a * 60 + Number(x), 0);
+  return null;
+}
+
+function entityType(tag, bank) {
+  const base = tag.startsWith('{') ? (bankTypeForTag(bank, tag) || 'PERS') : tag.slice(1, -1).replace(/_\d+$/, '');
+  return ENTITY_TYPE_MAP[base] || 'AUTRE';
+}
+
+// Base-text offset → anonText offset (positions outside tags)
+function baseToAnon(seg, pos) {
+  let a = 0, p = 0;
+  for (const sp of seg.spans) {
+    if (pos <= sp.s) return a + (pos - p);
+    a += (sp.s - p) + sp.tag.length;
+    p = sp.e;
+  }
+  return a + (pos - p);
+}
+
+function anonToBase(seg, apos) {
+  let a = 0, p = 0;
+  for (const sp of seg.spans) {
+    if (apos <= a + (sp.s - p)) return p + (apos - a);
+    a += (sp.s - p) + sp.tag.length;
+    p = sp.e;
+  }
+  return p + (apos - a);
+}
+
+// Speaker labels are always tags: bank tag, else the tag used on the segments, else [ENQ] / [ENQ·E_n]
+function anonSpeakers(d, bank) {
+  const interviewers = d.speakers.filter(s => s.role === 'interviewer');
+  const others = d.speakers.filter(s => s.role !== 'interviewer');
+  return d.speakers.map(s => {
+    let label = bankTags(bank[s.label] || { tag: '' })[0].tag || s.anonLabel || '';
+    if (!label) {
+      const i = d.segments.findIndex((sg, k) => sg.speakerId === s.id && /^\[.+\]$/.test(d.anonymized[k]?.anonSpeaker || ''));
+      label = i >= 0 ? d.anonymized[i].anonSpeaker
+        : s.role === 'interviewer'
+          ? (interviewers.length > 1 ? `[ENQ_${interviewers.indexOf(s) + 1}]` : '[ENQ]')
+          : `[ENQ·E_${others.indexOf(s) + 1}]`;
+    }
+    return { id: s.id, role: CORPUS_ROLES.includes(s.role) ? s.role : 'other', label };
+  });
+}
+
+// Doc-level ext without the raw-side namespace; tables add their layout (other columns per row)
+function corpusExt(d) {
+  const ext = Object.fromEntries(Object.entries(d.ext || {}).filter(([k]) => k !== 'rescribe'));
+  if (!d.table) return ext;
+  const name = Object.fromEntries(d.table.columns.map(c => [c.key, c.name]));
+  const spkId = Object.fromEntries((d.speakers || []).map(s => [s.label, s.id]));
+  ext.elide = {
+    ...(ext.elide || {}),
+    table: {
+      columns: d.table.columns.map(c => ({ name: c.name, role: c.role })),
+      rows: d.table.rows.map(r => ({
+        id: r.id,
+        segments: Object.fromEntries(Object.entries(r.segs).map(([k, v]) => [name[k], v])),
+        values: Object.fromEntries(Object.entries(r.values).filter(([, v]) => v).map(([k, v]) => [name[k], v])),
+        ...(r.speaker && spkId[r.speaker] ? { speakerId: spkId[r.speaker] } : {}),
+      })),
+    },
+  };
+  return ext;
+}
+
+async function buildAnonCorpusDoc(d, project, now) {
+  const bank = project.entityBank || {};
+  const speakers = anonSpeakers(d, bank);
+  const spkIds = new Set(speakers.map(s => s.id));
+  const segments = [], kept = [];
+  const counts = new Map();
+  for (let i = 0; i < d.segments.length; i++) {
+    const s = d.segments[i], a = d.anonymized[i];
+    const text = a.anonText ?? '';
+    const out = { id: s.id, speakerId: spkIds.has(s.speakerId) ? s.speakerId : null, t: tsSeconds(s.timestamp), text };
+    if (Number.isInteger(s.page)) out.page = s.page;
+    out.textHash = await sha256hex16(text);
+    segments.push(out);
+    (text.match(TOKEN_RE) || []).forEach(tok => counts.set(tok, (counts.get(tok) || 0) + 1));
+    kept.push((a.keep || []).map(k => ({ s: baseToAnon(a, k.s), e: baseToAnon(a, k.e), ack: !!k.ack, ref: k })));
+  }
+  const meta = {};
+  META_WHITELIST.forEach(k => { const v = d.meta?.[k]; if (typeof v === 'string' && v.trim()) meta[k] = v.trim(); });
+  const prev = (d.provenance || [])
+    .filter(p => ['rescribe', 'elide', 'analysis', 'import'].includes(p?.tool))
+    .map(p => ({ tool: p.tool, version: String(p.version || '?'), at: isoOr(p.at, now), ...(typeof p.note === 'string' ? { note: p.note } : {}) }));
+  const lang = CORPUS_LANGS.includes(d.lang) ? d.lang : CORPUS_LANGS.includes(project.docLang) ? project.docLang : null;
+  const doc = {
+    format: 'corpus-doc',
+    schemaVersion: '1.0',
+    id: d.corpusId,
+    kind: d.kind,
+    sensitivity: 'anonymized',
+    title: d.title || d.corpusId,
+    ...(lang ? { lang } : {}),
+    createdAt: isoOr(d.createdAt || d.importedAt, now),
+    meta,
+    speakers,
+    segments,
+    entities: [...counts].map(([tag, count]) => ({ tag, type: entityType(tag, bank), count })),
+    review: { status: 'validated', validatedAt: d.review.validatedAt, coverage: 1 },
+    provenance: [...prev, {
+      tool: 'elide', version: VERSION, at: now,
+      from: `${d.corpusId}.${SRC_EXT[d.sourceFormat || d.format] || 'txt'}`,
+      note: `engine=${project.engine || 'ner'}`,
+    }],
+    ext: corpusExt(d),
+  };
+  return { doc, kept };
+}
+
+// Real values that must never leave: every entity-bank key, plus real speaker names
+function forbiddenValues(bank, docs) {
+  const vals = new Map();
+  Object.entries(bank || {}).forEach(([w, info]) => {
+    const f = normForm(w);
+    if (f) vals.set(f, { value: w, tag: bankTags(info).map(x => x.tag).join(' / ') });
+  });
+  docs.forEach(d => (d.speakers || []).forEach(s => {
+    const f = normForm(s.label || '');
+    if (f.length < 3 || GENERIC_SPEAKERS.has(f) || vals.has(f)) return;
+    vals.set(f, { value: s.label, tag: t('speakerTag') });
+  }));
+  return [...vals.values()];
+}
+
+function scanBundle(bundle, forbidden, keptByDoc) {
+  const leaks = [], keptHits = [], badKeys = [], acked = [];
+  const walk = (v, path) => {
+    if (typeof v === 'string') {
+      const masked = v.replace(SCAN_TOKEN_RE, m => ' '.repeat(m.length));
+      const nm = normMap(masked);
+      const pos = /^documents\[(\d+)\]\.segments\[(\d+)\]\.text$/.exec(path);
+      forbidden.forEach(f => findForms(masked, f.value, nm).forEach(m => {
+        const hit = { path, docIdx: pos ? +pos[1] : (/^documents\[(\d+)\]/.exec(path)?.[1] ?? null),
+          segIdx: pos ? +pos[2] : null, s: m.s, e: m.e, found: v.slice(m.s, m.e), tag: f.tag };
+        const k = pos ? keptByDoc[+pos[1]]?.[+pos[2]]?.find(r => overlaps(r, m)) : null;
+        if (!k) leaks.push(hit);
+        else if (!k.ack) keptHits.push({ ...hit, keep: k });
+        else acked.push(hit);
+      }));
+    } else if (Array.isArray(v)) {
+      v.forEach((x, i) => walk(x, `${path}[${i}]`));
+    } else if (v && typeof v === 'object') {
+      Object.entries(v).forEach(([k, x]) => {
+        if (FORBIDDEN_KEYS.has(k)) badKeys.push(path ? `${path}.${k}` : k);
+        walk(x, path ? `${path}.${k}` : k);
+      });
+    }
+  };
+  walk(bundle, '');
+  return { leaks, keptHits, badKeys, acked };
+}
+
+async function buildAnalysisBundle(projectId) {
+  const project = await DB.get('projects', projectId);
+  const all = await DB.getByIndex('documents', 'projectId', projectId);
+  const now = new Date().toISOString();
+  const included = [], excluded = [], keptByDoc = [], documents = [];
+  for (const d of all) {
+    const migrated = ensureModel(d) | ensureCorpusFields(d);
+    let save = !!migrated;
+    if (d.status !== 'validated') {
+      excluded.push({ title: d.title || d.corpusId, reason: t('status_' + d.status) || d.status });
+    } else {
+      const pending = d.anonymized.reduce((n, s) => n + s.spans.filter(x => x.review).length, 0);
+      if (pending) excluded.push({ title: d.title || d.corpusId, reason: t('excludedReview').replace('{n}', pending) });
+      else {
+        // Documents validated before this version: their validation date is fixed at first export
+        if (!d.review?.validatedAt) { d.review = { ...(d.review || {}), validatedAt: now }; save = true; }
+        const { doc, kept } = await buildAnonCorpusDoc(d, project, now);
+        documents.push(doc);
+        keptByDoc.push(kept);
+        included.push(d);
+      }
+    }
+    if (save) await DB.put('documents', d);
+  }
+  const lang = CORPUS_LANGS.includes(project.docLang) ? project.docLang : null;
+  const bundle = {
+    format: 'corpus-bundle',
+    schemaVersion: '1.0',
+    exportedAt: now,
+    project: { id: project.id, name: project.name || '', ...(lang ? { lang } : {}) },
+    documents,
+  };
+  const scan = scanBundle(bundle, forbiddenValues(project.entityBank, included), keptByDoc);
+  return { bundle, excluded, included, ...scan };
+}
+
+function excludedHtml(excluded) {
+  if (!excluded.length) return '';
+  return `<p style="font-size:.8rem;margin-top:12px;font-weight:600">⚠ ${t('exportExcluded')} (${excluded.length})</p>
+    <ul style="font-size:.78rem;color:var(--muted);margin:4px 0 0 18px">${excluded.map(x =>
+      `<li>${escHtml(x.title)} — ${escHtml(String(x.reason))}</li>`).join('')}</ul>`;
+}
+
+function leakRowsHtml(hits, bundle, included, withCheckbox) {
+  return hits.map((h, i) => {
+    const di = h.docIdx != null ? +h.docIdx : null;
+    const doc = di != null ? bundle.documents[di] : null;
+    const where = h.segIdx != null ? doc.segments[h.segIdx].id : h.path.replace(/^documents\[\d+\]\./, '');
+    const open = di != null ? `<button class="btn btn-sm" onclick="openLeak('${included[di].id}', ${h.segIdx ?? -1})">${t('openDoc')}</button>` : '';
+    const box = withCheckbox ? `<input type="checkbox" class="kept-ack" data-i="${i}">` : '';
+    return `<tr>
+      <td style="padding:3px 6px">${box}</td>
+      <td style="padding:3px 6px">${escHtml(doc ? doc.title : t('projectLabel'))}</td>
+      <td style="padding:3px 6px"><code>${escHtml(where)}</code></td>
+      <td style="padding:3px 6px">« ${escHtml(h.found)} »</td>
+      <td style="padding:3px 6px"><code>${escHtml(h.tag)}</code></td>
+      <td style="padding:3px 6px">${open}</td></tr>`;
+  }).join('');
+}
+
+function leakTableHtml(rows, withSelectAll = false) {
+  const all = withSelectAll
+    ? `<input type="checkbox" title="${escAttr(t('selectAll'))}" onclick="document.querySelectorAll('.kept-ack').forEach(b => { b.checked = this.checked; })">`
+    : '';
+  return `<div style="max-height:320px;overflow:auto;margin-top:8px"><table style="font-size:.78rem;border-collapse:collapse;width:100%">
+    <tr style="color:var(--muted);text-align:left"><th style="padding:3px 6px">${all}</th><th>${t('docLabel')}</th><th>${t('segmentLabel')}</th><th>${t('foundLabel')}</th><th>${t('expectedTag')}</th><th></th></tr>
+    ${rows}</table></div>`;
+}
+
+async function openLeak(docId, segIdx) {
+  closeModal();
+  await openEditor(docId);
+  if (segIdx < 0) return;
+  const el = document.querySelector(`#panel-anon .seg[data-idx="${segIdx}"]`);
+  if (!el) return;
+  el.scrollIntoView({ block: 'center' });
+  el.style.outline = '2px solid var(--err)';
+  setTimeout(() => { el.style.outline = ''; }, 2500);
+}
+
+// `allow`: non-text values (title, meta…) confirmed for this export only — "path|found"
+async function exportAnalysisBundle(projectId = state.currentProjectId, allow = new Set()) {
+  const r = await buildAnalysisBundle(projectId);
+  if (!r.bundle.documents.length) {
+    showInfoModal(t('exportAnalysisTitle'), `<p>${t('exportNoneValidated')}</p>${excludedHtml(r.excluded)}`);
+    return;
+  }
+  // Internal fields in the bundle are a bug, never a judgement call: no override
+  if (r.badKeys.length) {
+    showInfoModal(t('exportBlockedTitle'),
+      `<p style="color:var(--err);font-size:.8rem">${t('exportBadKeys')} ${r.badKeys.map(escHtml).join(', ')}</p>`);
+    return;
+  }
+  const leakKey = h => `${h.path}|${h.found}`;
+  const allowed = r.leaks.filter(h => allow.has(leakKey(h)));
+  const leaks = r.leaks.filter(h => !allow.has(leakKey(h)));
+  if (leaks.length) {
+    showModal(t('exportBlockedTitle'),
+      `<p style="font-size:.82rem">${t('exportBlockedIntro')}</p>
+       <p style="font-size:.82rem;margin-top:6px">${t('exportAnywayIntro')}</p>
+       ${leakTableHtml(leakRowsHtml(leaks, r.bundle, r.included, true), true)}`,
+      t('exportAnyway'), async () => {
+        const boxes = [...document.querySelectorAll('.kept-ack')];
+        const missing = boxes.filter(b => !b.checked);
+        if (missing.length) { missing.forEach(b => { b.parentElement.style.outline = '2px solid var(--err)'; }); return; }
+        // Occurrences in the text are remembered as "kept in clear, confirmed";
+        // other fields (title, metadata) are confirmed for this export only
+        const next = new Set(allow);
+        leaks.forEach(h => {
+          if (h.segIdx == null) { next.add(leakKey(h)); return; }
+          const seg = r.included[+h.docIdx].anonymized[h.segIdx];
+          seg.keep = [...(seg.keep || []), { s: anonToBase(seg, h.s), e: anonToBase(seg, h.e), ack: true }];
+        });
+        for (const d of r.included) await DB.put('documents', d);
+        closeModal();
+        exportAnalysisBundle(projectId, next);
+      }, true);
+    return;
+  }
+  if (r.keptHits.length) {
+    showModal(t('exportKeptTitle'),
+      `<p style="font-size:.82rem">${t('exportKeptIntro')}</p>${leakTableHtml(leakRowsHtml(r.keptHits, r.bundle, r.included, true), true)}`,
+      t('exportKeptConfirm'), async () => {
+        const boxes = [...document.querySelectorAll('.kept-ack')];
+        const missing = boxes.filter(b => !b.checked);
+        if (missing.length) { missing.forEach(b => { b.parentElement.style.outline = '2px solid var(--err)'; }); return; }
+        // Remember the confirmation on the "keep" range itself, then export again
+        r.keptHits.forEach(h => { h.keep.ref.ack = true; });
+        for (const d of r.included) await DB.put('documents', d);
+        closeModal();
+        exportAnalysisBundle(projectId, allow);
+      });
+    return;
+  }
+  // Audit trail for the analysis tool: how many known values were deliberately left in clear
+  const confirmed = {};
+  [...r.acked, ...allowed].forEach(h => { if (h.docIdx != null) confirmed[+h.docIdx] = (confirmed[+h.docIdx] || 0) + 1; });
+  Object.entries(confirmed).forEach(([i, n]) => {
+    const prov = r.bundle.documents[i].provenance;
+    prov[prov.length - 1].note += `; confirmedInClear=${n}`;
+  });
+  const project = await DB.get('projects', projectId);
+  const name = (project.name || 'corpus').replace(/[^a-z0-9]/gi, '_');
+  download(JSON.stringify(r.bundle, null, 2), `${name}.corpus.json`, 'application/json');
+  showInfoModal(t('exportAnalysisTitle'),
+    `<p>${t('exportDone').replace('{n}', r.bundle.documents.length)}</p>${excludedHtml(r.excluded)}`);
 }
 
 async function rerunAnonymization() {
@@ -1763,10 +3437,23 @@ async function rerunAnonymization() {
 // ════════════════════════════════════════════════════════════════════
 const undoStack = [];
 
+// Place a position:fixed element next to an anchor rect (viewport coords): below, else above, always on screen
+function placeFloating(el, anchor, gap = 6) {
+  const m = 8, vw = window.innerWidth, vh = window.innerHeight;
+  const w = el.offsetWidth, h = el.offsetHeight;
+  const below = vh - anchor.bottom - gap - m;
+  const above = anchor.top - gap - m;
+  let top = (h <= below || below >= above) ? anchor.bottom + gap : anchor.top - gap - h;
+  top = Math.max(m, Math.min(top, vh - h - m));
+  el.style.top = `${top}px`;
+  el.style.left = `${Math.max(m, Math.min(anchor.left, vw - w - m))}px`;
+}
+
 function hideTagPicker() {
   document.getElementById('tag-picker').classList.add('hidden');
   document.getElementById('tp-dismiss-row').classList.add('hidden');
   state.activeHintWord = null;
+  state.activeHintEl = null;
 }
 
 function filterTagPicker(val) {
@@ -1789,6 +3476,7 @@ function hidePopover() {
   document.getElementById('pseudo-pop').classList.add('hidden');
   state.activeMarkEl = null;
   state.activePseudoEl = null;
+  state.activeTok = null;
 }
 
 async function showTagPicker(word, rect) {
@@ -1800,60 +3488,64 @@ async function showTagPicker(word, rect) {
   // Group existing entities by type+tag; separate pseudo from regular
   const byType = {};
   const pseudoFlat = []; // all pseudo entities, pulled out of their groups
-  Object.entries(eb).forEach(([w, info]) => {
-    if (info.pseudo !== undefined) { // pseudo: kept in their own list
+  Object.entries(eb).forEach(([w, entry]) => bankTags(entry).forEach(info => {
+    // Pseudo detection: explicit pseudo property OR tag is a {token}
+    const isPseudoEntry = info.pseudo !== undefined || (info.tag?.startsWith('{') && info.tag?.endsWith('}'));
+    if (isPseudoEntry) {
       const tk = info.tag;
+      const pseudoName = info.pseudo ?? tk.slice(1, -1); // derive from {token} if missing
       const existing = pseudoFlat.find(p => p.tag === tk);
       if (existing) { existing.words.push(w); }
-      else { pseudoFlat.push({ tag: tk, words: [w], pseudo: info.pseudo, type: info.type || 'PERS' }); }
+      else { pseudoFlat.push({ tag: tk, words: [w], pseudo: pseudoName, type: info.type || 'PERS' }); }
       return;
     }
-    const type = info.type || info.tag.replace(/\[([A-Z]+)_?\d*\]/, '$1');
+    const type = info.type || info.tag.replace(/\[([A-ZÉÈÀÙÎÏÔÂ]+)_?\d*\]/, '$1');
     if (!byType[type]) byType[type] = {};
     const tk = info.tag;
     if (!byType[type][tk]) byType[type][tk] = { tag: tk, words: [] };
     byType[type][tk].words.push(w);
-  });
+  }));
 
-  const shortWord = word.length > 40 ? word.slice(0, 38) + '…' : word;
-  document.getElementById('tp-word-em').textContent = `"${shortWord}"`;
   const searchInp = document.getElementById('tp-search-input');
   if (searchInp) searchInp.value = '';
   const body = document.getElementById('tp-body');
   body.innerHTML = '';
 
-  const mainTags = TAGS.filter(tag => tag.id !== 'CAVIARDÉ');
-  const redacte = TAGS.find(tag => tag.id === 'CAVIARDÉ');
+  const mainTags = TAGS.filter(t => t.id !== 'CAVIARDÉ');
+  const redacteDef = TAGS.find(t => t.id === 'CAVIARDÉ');
   const langKey = { fr:'label_fr', en:'label_en', de:'label_de' }[state.lang] || 'label_fr';
 
-  // ── Pseudo section (always at top, clearly separated) ──
-  if (pseudoFlat.length) {
-    const pGroup = document.createElement('div');
-    pGroup.className = 'tp-group';
-    let pH = `<div class="tp-group-label" style="color:var(--tag-pseudo)">Pseudonymes</div><div class="tp-group-btns">`;
-    pseudoFlat.forEach(({ tag, words, pseudo }) => {
-      const variants = words.slice(0, 3).join(', ') + (words.length > 3 ? '…' : '');
-      pH += `<button class="tp-entity-btn tag tag-pseudo" onclick="pickExistingTag('${escHtml(tag)}',event)">${escHtml(pseudo)}<span class="tp-entity-word">${escHtml(variants)}</span></button>`;
-    });
-    pH += '</div>';
-    pGroup.innerHTML = pH;
-    body.appendChild(pGroup);
-    const sep = document.createElement('hr');
-    sep.className = 'tp-separator';
-    body.appendChild(sep);
+  // CAVIARDÉ — always-visible pinned button above the scroll
+  const redactTop = document.getElementById('tp-redact-top');
+  if (redactTop && redacteDef) {
+    const rlabel = redacteDef[langKey] || redacteDef.label_fr;
+    redactTop.innerHTML = `<button class="btn btn-sm tag tag-redact" style="width:100%;justify-content:center" onclick="hideTagPicker();applyTag('[CAVIARDÉ]',false)">${rlabel}</button>`;
+    redactTop.style.display = '';
   }
 
-  // ── Main tag groups ──
+  // Group pseudos by their type for inline display
+  const pseudosByType = {};
+  pseudoFlat.forEach(p => {
+    if (!pseudosByType[p.type]) pseudosByType[p.type] = [];
+    pseudosByType[p.type].push(p);
+  });
+
+  // ── Main tag groups (pseudos inline) ──
   mainTags.forEach((tagDef) => {
     const { id, cls } = tagDef;
     const label = tagDef[langKey] || tagDef.label_fr;
     const tagGroups = Object.values(byType[id] || {});
+    const typePseudos = pseudosByType[id] || [];
     const group = document.createElement('div');
     group.className = 'tp-group';
     let btnsHtml = '';
     tagGroups.forEach(({ tag, words }) => {
       const variants = words.slice(0, 3).join(', ') + (words.length > 3 ? '…' : '');
-      btnsHtml += `<button class="tp-entity-btn tag ${cls}" onclick="pickExistingTag('${tag}',event)">${tag}<span class="tp-entity-word">${escHtml(variants)}</span></button>`;
+      btnsHtml += `<button class="tp-entity-btn tag ${cls}" data-tag="${escAttr(tag)}" onclick="pickExistingTag(this.dataset.tag,event)">${escHtml(tag)}<span class="tp-entity-word">${escHtml(variants)}</span></button>`;
+    });
+    typePseudos.forEach(({ tag, words, pseudo }) => {
+      const variants = words.slice(0, 3).join(', ') + (words.length > 3 ? '…' : '');
+      btnsHtml += `<button class="tp-entity-btn tag ${cls}" style="font-style:italic" data-tag="${escAttr(tag)}" onclick="pickExistingTag(this.dataset.tag,event)">${escHtml(pseudo)}<span class="tp-entity-word">${escHtml(variants)}</span></button>`;
     });
     const n = (project.tagCounters?.[id] || 0) + 1;
     btnsHtml += `<button class="tp-new-btn" onclick="pickNewTag('${id}',event)">+ ${id}_${n}</button>`;
@@ -1870,7 +3562,13 @@ async function showTagPicker(word, rect) {
   });
 
   // ── Custom tags (unknown types) ──
-  const knownTypes = new Set(TAGS.map(tag => tag.id));
+  const knownTypes = new Set([
+    ...TAGS.map(t => t.id),
+    // backward-compat legacy type IDs (incl. old CAVIARDÉ entries stored with brackets or wrong type)
+    'CAVIARDÉ','[CAVIARDÉ]','[CAVIARDE]',
+    'DATE','REDACTE','CAVIARDE','PRÉNOM','PRÉNOM_ENQ','NOM','ENQ','VILLE','LOC',
+    'PSEUDO','MISC','DATE_PRÉCISE','MÉTIER_PRÉCIS','REF_IDENTIFIANTE',
+  ]);
   const customFlat = [];
   Object.entries(byType).forEach(([typeId, tagGroup]) => {
     if (knownTypes.has(typeId)) return;
@@ -1885,36 +3583,27 @@ async function showTagPicker(word, rect) {
     let custHtml = `<div class="tp-group-label">${t('customTags') || 'Tags perso'}</div><div class="tp-group-btns">`;
     customFlat.forEach(({ tag, words }) => {
       const variants = words.slice(0, 2).join(', ') + (words.length > 2 ? '…' : '');
-      custHtml += `<button class="tp-entity-btn tag" style="background:var(--surf2);color:var(--text)" onclick="pickExistingTag('${escHtml(tag)}',event)">${escHtml(tag)}<span class="tp-entity-word">${escHtml(variants)}</span></button>`;
+      custHtml += `<button class="tp-entity-btn tag" style="background:var(--surf2);color:var(--text)" data-tag="${escAttr(tag)}" onclick="pickExistingTag(this.dataset.tag,event)">${escHtml(tag)}<span class="tp-entity-word">${escHtml(variants)}</span></button>`;
     });
     custHtml += '</div>';
     custGroup.innerHTML = custHtml;
     body.appendChild(custGroup);
   }
 
-  // ── CAVIARDÉ pinned outside scroll ──
+  // Pinned redact row no longer used — hide it
   const redactRow = document.getElementById('tp-redact-row');
-  if (redactRow && redacte) {
-    const btn = document.createElement('button');
-    btn.className = `btn btn-sm tag tag-redact`;
-    btn.style.cssText = 'width:100%;margin:0';
-    btn.textContent = redacte[langKey] || redacte.label_fr;
-    btn.onclick = () => { hideTagPicker(); applyTag('[CAVIARDÉ]', false); };
-    redactRow.innerHTML = '';
-    redactRow.appendChild(btn);
-  }
+  if (redactRow) { redactRow.innerHTML = ''; redactRow.style.display = 'none'; }
 
   const picker = document.getElementById('tag-picker');
-  picker.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 400)}px`;
+  body.style.maxHeight = '';
   picker.classList.remove('hidden');
-  const pickerH = picker.offsetHeight || 360;
-  const spaceBelow = window.innerHeight - rect.bottom;
-  if (spaceBelow < pickerH + 12 && rect.top > pickerH + 12) {
-    picker.style.top = `${rect.top + window.scrollY - pickerH - 6}px`;
-  } else {
-    picker.style.top = `${rect.bottom + window.scrollY + 6}px`;
-  }
+  // If it fits on neither side of the selection, shrink the scrollable list
+  const room = Math.max(window.innerHeight - rect.bottom, rect.top) - 20;
+  const overflow = picker.offsetHeight - room;
+  if (overflow > 0) body.style.maxHeight = `${Math.max(120, body.clientHeight - overflow)}px`;
+  placeFloating(picker, rect);
   hidePopover();
+  setTimeout(() => { document.getElementById('tp-search-input')?.focus(); }, 30);
 }
 
 async function pickExistingTag(existingTag, e) {
@@ -1942,7 +3631,12 @@ async function pickCustomTag() {
   if (!raw) return;
   inp.value = '';
   hideTagPicker();
-  const tag = `[${raw}]`;
+  const doc = await DB.get('documents', state.currentDocId);
+  const project = await DB.get('projects', doc.projectId);
+  if (!project.tagCounters) project.tagCounters = {};
+  project.tagCounters[raw] = (project.tagCounters[raw] || 0) + 1;
+  const tag = `[${raw}_${project.tagCounters[raw]}]`;
+  await DB.put('projects', project);
   await applyTag(tag, false);
 }
 
@@ -1955,64 +3649,12 @@ async function pickPseudo(baseId, inputEl) {
 }
 
 async function applyPseudo(pseudonym, baseId) {
-  const range = state.activeRange;
-  if (!range) return;
-  const originalText = range.toString().trim();
-  if (!originalText) return;
-
-  const container = range.commonAncestorContainer;
-  const segEl = container.closest?.('.seg') || container.parentElement?.closest('.seg');
-  const idx = segEl ? parseInt(segEl.dataset.idx) : -1;
-  if (idx < 0) return;
-
-  window.getSelection()?.removeAllRanges();
-
-  const doc = await DB.get('documents', state.currentDocId);
-  const project = await DB.get('projects', doc.projectId);
-  const anonSeg = doc.anonymized[idx];
-  if (!anonSeg) return;
-
-  anonSeg.tagMap = anonSeg.tagMap || {};
-
-  const snapAnon = doc.anonymized.map(s => ({ ...s, tagMap: { ...s.tagMap } }));
-  undoStack.push({ docId: doc.id, projectId: project.id, snapAnon, ebSnap: { ...project.entityBank }, cntSnap: { ...project.tagCounters } });
-
-  const token = `{${pseudonym}}`;
-  const escaped = originalText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const baseText = anonSeg.anonText || doc.segments[idx].text;
-  anonSeg.anonText = baseText.replace(new RegExp(escaped, 'g'), token);
-  anonSeg.tagMap[originalText] = token;
-
-  project.entityBank = project.entityBank || {};
-  project.entityBank[originalText] = { tag: token, type: baseId || 'PERS', pseudo: pseudonym, count: (project.entityBank[originalText]?.count || 0) + 1 };
-  project.updatedAt = new Date().toISOString();
-
-  let propCount = 0;
-  doc.anonymized.forEach((otherSeg, i) => {
-    if (i === idx) return;
-    const src = otherSeg.anonText || doc.segments[i].text;
-    if (!src.includes(originalText)) return;
-    otherSeg.tagMap = otherSeg.tagMap || {};
-    otherSeg.anonText = src.replace(new RegExp(escaped, 'g'), token);
-    otherSeg.tagMap[originalText] = token;
-    propCount++;
-    const otherBody = document.getElementById(`abody_${i}`);
-    if (otherBody) otherBody.innerHTML = renderBalises(otherSeg.anonText, otherSeg.tagMap, true);
-  });
-
-  await DB.put('documents', doc);
-  await DB.put('projects', project);
-
-  const bodyEl = document.getElementById(`abody_${idx}`);
-  if (bodyEl) bodyEl.innerHTML = renderBalises(anonSeg.anonText, anonSeg.tagMap, true);
-
-  flashAutosave();
-  writeProjectFile(project.id);
-  propagateCrossDoc(originalText, token, doc.id, project);
+  await applyTag(`{${pseudonym}}`, { type: baseId || 'PERS' });
 }
 
 function hintClick(span) {
   state.activeHintWord = span.textContent;
+  state.activeHintEl = span;
   const sel = window.getSelection();
   const range = document.createRange();
   range.selectNode(span);
@@ -2021,10 +3663,31 @@ function hintClick(span) {
   state.activeRange = range.cloneRange();
   const rect = span.getBoundingClientRect();
   showTagPicker(span.textContent, rect);
+  const lbl = document.querySelector('#tp-dismiss-row [data-i18n]');
+  if (lbl) lbl.textContent = t(span.classList.contains('hint-ambiguous') ? 'keepClear' : 'dismissHint');
   document.getElementById('tp-dismiss-row').classList.remove('hidden');
 }
 
-function ignoreHint() {
+async function ignoreHint() {
+  const span = state.activeHintEl;
+  // Homonym deliberately left in clear → protect this occurrence from automatic tagging
+  if (span?.isConnected && span.classList.contains('hint-ambiguous')) {
+    const range = document.createRange();
+    range.selectNode(span);
+    const sel = readSelection(range);
+    hideTagPicker();
+    if (!sel) return;
+    const doc = await DB.get('documents', state.currentDocId);
+    const project = await DB.get('projects', doc.projectId);
+    ensureModel(doc);
+    pushUndo(doc, project);
+    const seg = doc.anonymized[sel.idx];
+    seg.keep = [...(seg.keep || []), { s: sel.s, e: sel.e }];
+    await DB.put('documents', doc);
+    rerenderSegs(doc, new Set([sel.idx]));
+    flashAutosave();
+    return;
+  }
   const word = state.activeHintWord;
   if (!word) return;
   const wl = word.toLowerCase();
@@ -2040,110 +3703,100 @@ function ignoreHint() {
   }
 }
 
-function fragmentToAnonText(frag) {
-  let r = '';
-  frag.childNodes.forEach(n => {
-    if (n.nodeType === Node.TEXT_NODE) { r += n.textContent; }
-    else if (n.tagName === 'MARK' && n.dataset.tag) { r += `[${n.dataset.tag}]`; }
-    else if (n.tagName === 'SPAN' && n.classList.contains('tag-pseudo')) { r += `{${n.dataset.pseudo}}`; }
-    else { r += fragmentToAnonText(n); }
+function pushUndo(doc, project) {
+  undoStack.push({
+    docId: doc.id,
+    projectId: project.id,
+    snapAnon: structuredClone(doc.anonymized),
+    ebSnap: structuredClone(project.entityBank || {}),
+    cntSnap: { ...project.tagCounters },
+    snapSegs: doc.table ? structuredClone(doc.segments) : null,
+    snapTable: doc.table ? structuredClone(doc.table) : null,
   });
-  return r;
 }
 
-async function applyTag(tag, reuseExisting) {
+// Re-render some (or all, when idxs is null) segments of the open document
+function rerenderSegs(doc, idxs) {
+  if (state.currentDocId !== doc.id) return;
+  const amb = ambiguousForms(_currentEntityBank);
+  const list = idxs ? [...idxs] : doc.anonymized.map((_, i) => i);
+  list.forEach(i => {
+    const el = document.getElementById(`abody_${i}`);
+    if (el && doc.anonymized[i]) el.innerHTML = renderSeg(doc.anonymized[i], true, amb);
+  });
+  updateReviewCounter();
+}
+
+async function tagUsedInProject(projectId, token) {
+  const docs = await DB.getByIndex('documents', 'projectId', projectId);
+  return docs.some(d => d.anonymized?.some(s => s.anonText?.includes(token)));
+}
+
+async function applyTag(tag, opts = {}) {
   const range = state.activeRange;
   if (!range) return;
-  const originalText = range.toString().trim();
-  if (!originalText) return;
-
-  const container = range.commonAncestorContainer;
-  const segEl = container.closest?.('.seg') || container.parentElement?.closest('.seg');
-  const idx = segEl ? parseInt(segEl.dataset.idx) : -1;
-  if (idx < 0) return;
-
+  const sel = readSelection(range);
+  if (!sel) return;
   window.getSelection()?.removeAllRanges();
 
   const doc = await DB.get('documents', state.currentDocId);
   const project = await DB.get('projects', doc.projectId);
-  const anonSeg = doc.anonymized[idx];
-  if (!anonSeg) return;
+  ensureModel(doc);
+  const seg = doc.anonymized[sel.idx];
+  if (!seg) return;
+  let { s, e } = sel;
+  while (s < e && /\s/.test(seg.base[s])) s++;
+  while (e > s && /\s/.test(seg.base[e - 1])) e--;
+  if (s >= e) return;
 
-  anonSeg.tagMap = anonSeg.tagMap || {};
-  const showHints = true; // name index covers FR+EN+DE
+  pushUndo(doc, project);
+  const word = seg.base.slice(s, e);
+  const span = { s, e, tag, src: 'manual' };
+  addSpan(seg, span); // absorbs any tag inside the selection
+  syncSeg(seg);
+  const changed = new Set([sel.idx]);
 
-  // Save undo snapshot
-  const snapAnon = doc.anonymized.map(s => ({ ...s, tagMap: { ...s.tagMap } }));
-  undoStack.push({
-    docId: doc.id,
-    projectId: project.id,
-    snapAnon,
-    ebSnap: { ...project.entityBank },
-    cntSnap: { ...project.tagCounters },
-  });
-
-  const baseText = anonSeg.anonText || doc.segments[idx].text;
-  // Derive the anonText slice from the DOM range (handles selections spanning existing marks)
-  const frag = range.cloneContents();
-  const anonSlice = fragmentToAnonText(frag).trim();
-  const searchStr = anonSlice || originalText;
-  const escaped = searchStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  anonSeg.anonText = baseText.replace(new RegExp(escaped, 'g'), tag);
-  anonSeg.tagMap[originalText] = tag;
-
-  // Update entityBank
-  project.entityBank = project.entityBank || {};
-  let baseId;
-  if (tag.startsWith('{') && tag.endsWith('}')) {
-    // Reusing an existing pseudo token — look up type from entityBank
-    const existing = Object.values(project.entityBank).find(v => v.tag === tag);
-    baseId = existing?.type || 'PERS';
-  } else {
-    baseId = tag.replace(/\[([A-Z_]+?)(?:_\d+)?\]/, '$1');
+  // CAVIARDÉ is one-off: no entity, no propagation
+  const isCaviarde = tag === '[CAVIARDÉ]' || tag === '[CAVIARDE]';
+  let mode = null; // 'propagate' | 'flag'
+  if (!isCaviarde) {
+    const bank = project.entityBank = project.entityBank || {};
+    const isPseudo = tag.startsWith('{');
+    const type = opts?.type
+      || (isPseudo ? bankTypeForTag(bank, tag) || 'PERS' : tag.replace(/^\[([^\]]+?)(?:_\d+)?\]$/, '$1'));
+    const form = normForm(word);
+    const wasAmbiguous = ambiguousForms(bank).has(form);
+    registerEntity(bank, word, isPseudo ? { tag, type, pseudo: tag.slice(1, -1) } : { tag, type });
+    project.updatedAt = new Date().toISOString();
+    if (!ambiguousForms(bank).has(form)) {
+      mode = 'propagate';
+      doc.anonymized.forEach((sg, i) => { if (propagateInSeg(sg, word, tag)) changed.add(i); });
+    } else if (!wasAmbiguous) {
+      // Same form now has two tags: stop guessing, send automatic tags to review
+      mode = 'flag';
+      doc.anonymized.forEach((sg, i) => { if (flagFormForReview(sg, word, span)) changed.add(i); });
+    }
   }
-  project.entityBank[originalText] = { tag, type: baseId, count: (project.entityBank[originalText]?.count || 0) + 1 };
-  project.updatedAt = new Date().toISOString();
-
-  // Propagate within all segments of this doc
-  let propCount = 0;
-  doc.anonymized.forEach((otherSeg, i) => {
-    if (i === idx) return;
-    const src = otherSeg.anonText || doc.segments[i].text;
-    if (!src.includes(originalText)) return;
-    otherSeg.tagMap = otherSeg.tagMap || {};
-    otherSeg.anonText = src.replace(new RegExp(escaped, 'g'), tag);
-    otherSeg.tagMap[originalText] = tag;
-    propCount++;
-    const otherBody = document.getElementById(`abody_${i}`);
-    if (otherBody) otherBody.innerHTML = renderBalises(otherSeg.anonText, otherSeg.tagMap, showHints);
-  });
 
   await DB.put('documents', doc);
   await DB.put('projects', project);
-
-  const bodyEl = document.getElementById(`abody_${idx}`);
-  if (bodyEl) bodyEl.innerHTML = renderBalises(anonSeg.anonText, anonSeg.tagMap, showHints);
-
+  _currentEntityBank = project.entityBank || {};
+  rerenderSegs(doc, mode === 'flag' ? null : changed); // a new homonym changes highlights everywhere
   flashAutosave();
-  writeProjectFile(project.id);  // background, no await
-  // Cross-doc propagation (background, no confirm for now)
-  propagateCrossDoc(originalText, tag, doc.id, project);
+  writeProjectFile(project.id);
+  if (mode === 'flag') showToast(t('homonymToast').replace('{w}', word));
+  if (mode) await propagateAcrossDocs(project, doc.id, word, tag, mode);
 }
 
-async function propagateCrossDoc(word, tag, currentDocId, project) {
+// Other documents of the project — only those already anonymized and not validated
+async function propagateAcrossDocs(project, currentDocId, word, tag, mode) {
   const docs = await DB.getByIndex('documents', 'projectId', project.id);
-  const showHints = true; // name index covers FR+EN+DE
   for (const d of docs) {
-    if (d.id === currentDocId) continue;
+    if (d.id === currentDocId || !['done', 'editing'].includes(d.status)) continue;
+    ensureModel(d);
     let changed = false;
-    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    d.anonymized.forEach((seg, i) => {
-      const src = seg.anonText || d.segments[i]?.text || '';
-      if (!src.includes(word)) return;
-      seg.tagMap = seg.tagMap || {};
-      seg.anonText = src.replace(new RegExp(escaped, 'g'), tag);
-      seg.tagMap[word] = tag;
-      changed = true;
+    d.anonymized.forEach(sg => {
+      if (mode === 'flag' ? flagFormForReview(sg, word) : propagateInSeg(sg, word, tag)) changed = true;
     });
     if (changed) await DB.put('documents', d);
   }
@@ -2155,10 +3808,12 @@ async function undoLastTag() {
   const doc = await DB.get('documents', snap.docId);
   const project = await DB.get('projects', snap.projectId);
   doc.anonymized = snap.snapAnon;
+  if (snap.snapTable) { doc.segments = snap.snapSegs; doc.table = snap.snapTable; }
   project.entityBank = snap.ebSnap;
   project.tagCounters = snap.cntSnap;
   await DB.put('documents', doc);
   await DB.put('projects', project);
+  _currentEntityBank = project.entityBank || {};
   if (state.currentDocId === snap.docId) renderEditorPanels(doc, project);
   flashAutosave();
 }
@@ -2179,10 +3834,11 @@ document.addEventListener('mouseup', e => {
   const pop = document.getElementById('popover');
   if (picker?.contains(e.target)) return;
   if (pop?.contains(e.target)) return;
+  if (e.target.closest?.('.tbl-keep')) return;
 
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || !sel.toString().trim()) {
-    const pseudoSpan = e.target.closest('span.tag-pseudo');
+    const pseudoSpan = e.target.closest('span[data-pseudo]');
     if (pseudoSpan && panel.contains(pseudoSpan)) { pseudoClick(pseudoSpan, e); return; }
     const mark = e.target.closest('mark.tag');
     if (mark && panel.contains(mark)) { showPopover(mark, e); return; }
@@ -2202,7 +3858,7 @@ document.addEventListener('mouseup', e => {
 document.addEventListener('dblclick', e => {
   const panel = document.getElementById('panel-anon');
   if (!panel?.contains(e.target)) return;
-  if (e.target.closest('mark.tag') || e.target.closest('span.tag-pseudo')) return;
+  if (e.target.closest('mark.tag') || e.target.closest('span.tag-pseudo') || e.target.closest('.tbl-keep')) return;
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
   if (!panel.contains(sel.anchorNode)) return;
@@ -2215,7 +3871,11 @@ document.addEventListener('dblclick', e => {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { hideTagPicker(); hidePopover(); document.getElementById('pseudo-pop')?.classList.add('hidden'); document.getElementById('hint-legend-pop')?.classList.add('hidden'); }
-  if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); undoLastTag(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+    // Let native undo work while typing in a field
+    if (e.target.closest?.('input, textarea, [contenteditable="true"]')) return;
+    e.preventDefault(); undoLastTag();
+  }
 });
 document.addEventListener('mousedown', e => {
   const picker = document.getElementById('tag-picker');
@@ -2265,9 +3925,15 @@ async function insertTagFromSelection(tagId) {
 // ════════════════════════════════════════════════════════════════════
 function showPopover(mark, e) {
   state.activeMarkEl = mark;
+  state.activeTok = tokFromEl(mark);
   const pop = document.getElementById('popover');
   const orig = mark.dataset.original || mark.dataset.tag;
   document.getElementById('pop-orig-text').textContent = orig ? `"${orig}"` : mark.dataset.tag;
+  document.getElementById('pop-validate').style.display = mark.classList.contains('tag-review') ? '' : 'none';
+  // Speaker labels aren't tags in the text: show the real name only, without restore/change actions
+  const isSpeaker = mark.dataset.tag === 'SPK';
+  pop.querySelectorAll('.pop-restore-row, hr, .pop-change-label, .pop-tags')
+    .forEach(el => { el.style.display = isSpeaker ? 'none' : ''; });
 
   // Rebuild change-tag buttons
   const tagsEl = document.getElementById('pop-tags');
@@ -2281,271 +3947,173 @@ function showPopover(mark, e) {
     tagsEl.appendChild(b);
   });
 
-  pop.style.left = `${Math.min(e.clientX + window.scrollX, window.innerWidth - 220)}px`;
-  pop.style.top = `${e.clientY + window.scrollY + 8}px`;
   pop.classList.remove('hidden');
+  const mr = mark.getBoundingClientRect();
+  placeFloating(pop, { left: e.clientX, top: mr.top, bottom: mr.bottom });
 }
 
-async function restoreBalise(restoreAll = false) {
-  const mark = state.activeMarkEl;
-  if (!mark) return;
-
-  const segEl = mark.closest('.seg');
-  const idx = segEl ? parseInt(segEl.dataset.idx) : -1;
-  if (idx < 0) return;
-
-  // Capture from DOM before any await (refs can go stale)
-  const markTag = mark.dataset.tag;
-  const markOriginal = mark.dataset.original || '';
-  const currentTag = `[${markTag}]`;
-  const tagEsc = currentTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
+async function loadTok(tok) {
+  if (!tok) return null;
   const doc = await DB.get('documents', state.currentDocId);
   const project = await DB.get('projects', doc.projectId);
-  if (!doc?.anonymized) return;
+  ensureModel(doc);
+  const seg = doc.anonymized[tok.idx];
+  const span = seg?.spans.find(x => x.s === tok.s && x.tag === tok.tag);
+  return span ? { doc, project, seg, span } : null;
+}
 
-  // Undo snapshot (pushed only if we actually modify something — see early return below)
-  const undoSnap = { docId: doc.id, projectId: project.id,
-    snapAnon: doc.anonymized.map(s => ({ ...s, tagMap: { ...s.tagMap } })),
-    ebSnap: { ...project.entityBank }, cntSnap: { ...project.tagCounters } };
-
-  const restoreDocSegs = (d, updateDom) => {
-    d.anonymized.forEach((seg, i) => {
-      if (!seg.anonText?.includes(currentTag)) return;
-      const tm = seg.tagMap || {};
-      let entries = Object.entries(tm).filter(([, t]) => t === currentTag);
-      // Fallback: re-infer from original segment text if tagMap missing entry
-      if (!entries.length && d.segments?.[i]?.text) {
-        const inferred = inferTagMap(d.segments[i].text, seg.anonText);
-        entries = Object.entries(inferred).filter(([, t]) => t === currentTag);
-      }
-      if (entries.length) {
-        entries.forEach(([orig]) => {
-          seg.anonText = seg.anonText.replace(new RegExp(tagEsc, 'g'), orig);
-          delete tm[orig];
-        });
-      }
-      if (updateDom) {
-        const bodyEl = document.getElementById(`abody_${i}`);
-        if (bodyEl) bodyEl.innerHTML = renderBalises(seg.anonText, seg.tagMap || {}, true);
-      }
-    });
-  };
-
-  if (restoreAll === 'project') {
-    undoStack.push(undoSnap);
-    const allDocs = await DB.getByIndex('documents', 'projectId', project.id);
-    for (const d of allDocs) {
-      restoreDocSegs(d, d.id === doc.id);
-      await DB.put('documents', d);
-    }
-    Object.entries(project.entityBank || {}).forEach(([w, info]) => {
-      if (info.tag === currentTag) delete project.entityBank[w];
-    });
-  } else if (restoreAll) {
-    undoStack.push(undoSnap);
-    restoreDocSegs(doc, true);
-    Object.entries(project.entityBank || {}).forEach(([w, info]) => {
-      if (info.tag === currentTag) delete project.entityBank[w];
-    });
-  } else {
-    // Restore only the current segment
-    const anonSeg = doc.anonymized[idx];
-    if (!anonSeg) return;
-    // 1st — tagMap entry for this segment
-    const tagMapEntry = Object.entries(anonSeg.tagMap || {}).find(([, t]) => t === currentTag);
-    // 2nd — data-original captured from DOM before await
-    // 3rd — re-infer from original segment text (handles LLM tags with missing tagMap)
-    let originalText = tagMapEntry?.[0] || markOriginal;
-    if (!originalText && doc.segments[idx]?.text) {
-      const inferred = inferTagMap(doc.segments[idx].text, anonSeg.anonText);
-      const ie = Object.entries(inferred).find(([, t]) => t === currentTag);
-      if (ie) originalText = ie[0];
-    }
-
-    if (originalText) {
-      undoStack.push(undoSnap);
-      anonSeg.anonText = anonSeg.anonText.replace(currentTag, originalText);
-      if (tagMapEntry) delete anonSeg.tagMap[originalText];
-      if (project.entityBank?.[originalText]) {
-        project.entityBank[originalText].count = (project.entityBank[originalText].count || 1) - 1;
-        if (project.entityBank[originalText].count <= 0) delete project.entityBank[originalText];
-      }
-      const bodyEl = document.getElementById(`abody_${idx}`);
-      if (bodyEl) bodyEl.innerHTML = renderBalises(anonSeg.anonText, anonSeg.tagMap || {}, true);
-    } else {
-      // Can't determine original — leave tag in place, don't corrupt the text
-      hidePopover();
-      showToast('Original introuvable — tag conservé');
-      return;
-    }
-  }
-
-  await DB.put('projects', project);
-  await DB.put('documents', doc);
+// scope: 'one' (clicked occurrence) | 'doc' | 'project'
+async function restoreTok(tok, scope) {
   hidePopover();
+  const ctx = await loadTok(tok);
+  if (!ctx) return;
+  const { doc, project, seg, span } = ctx;
+  const bank = project.entityBank = project.entityBank || {};
+  if (scope === 'one') {
+    if (span.unknown) { showToast('Original introuvable — tag conservé'); return; }
+    pushUndo(doc, project);
+    seg.spans = seg.spans.filter(x => x !== span);
+    seg.keep = [...(seg.keep || []), { s: span.s, e: span.e }];
+    syncSeg(seg);
+    await DB.put('documents', doc);
+    if (!(await tagUsedInProject(project.id, span.tag))) bankRemoveTag(bank, span.tag);
+    await DB.put('projects', project);
+    _currentEntityBank = bank;
+    rerenderSegs(doc, new Set([tok.idx]));
+  } else {
+    pushUndo(doc, project);
+    const docs = scope === 'project'
+      ? (await DB.getByIndex('documents', 'projectId', project.id)).map(d => (d.id === doc.id ? doc : d))
+      : [doc];
+    for (const d of docs) {
+      ensureModel(d);
+      let changed = false;
+      d.anonymized.forEach(sg => {
+        const removed = sg.spans.filter(x => x.tag === span.tag && !x.unknown);
+        if (!removed.length) return;
+        sg.spans = sg.spans.filter(x => !removed.includes(x));
+        // Doc scope: the entity may stay known elsewhere — protect these from re-tagging
+        if (scope === 'doc') sg.keep = [...(sg.keep || []), ...removed.map(x => ({ s: x.s, e: x.e }))];
+        syncSeg(sg);
+        changed = true;
+      });
+      if (changed || d === doc) await DB.put('documents', d);
+    }
+    if (scope === 'project' || !(await tagUsedInProject(project.id, span.tag))) bankRemoveTag(bank, span.tag);
+    await DB.put('projects', project);
+    _currentEntityBank = bank;
+    rerenderSegs(doc, null);
+  }
+  flashAutosave();
+  writeProjectFile(project.id);
+}
+
+function restoreBalise(restoreAll = false) {
+  return restoreTok(state.activeTok, restoreAll === 'project' ? 'project' : restoreAll ? 'doc' : 'one');
+}
+
+function restorePseudo(restoreAll = false) {
+  return restoreTok(state.activeTok, restoreAll ? 'doc' : 'one');
+}
+
+async function validateTok() {
+  const tok = state.activeTok;
+  hidePopover();
+  const ctx = await loadTok(tok);
+  if (!ctx) return;
+  pushUndo(ctx.doc, ctx.project);
+  delete ctx.span.review;
+  await DB.put('documents', ctx.doc);
+  rerenderSegs(ctx.doc, new Set([tok.idx]));
+  flashAutosave();
 }
 
 async function changeBaliseType(mark, newTagId) {
-  const segEl = mark.closest('.seg');
-  const idx = segEl ? parseInt(segEl.dataset.idx) : -1;
-  if (idx < 0) return;
-
-  const oldTag = `[${mark.dataset.tag}]`;
-  const newTag = `[${newTagId}]`;
-
-  const doc = await DB.get('documents', state.currentDocId);
-  const anonSeg = doc.anonymized[idx];
-  if (anonSeg) {
-    anonSeg.anonText = anonSeg.anonText.replace(oldTag, newTag);
-    // Update tagMap if present
-    if (anonSeg.tagMap) {
-      const entry = Object.entries(anonSeg.tagMap).find(([, t]) => t === oldTag);
-      if (entry) anonSeg.tagMap[entry[0]] = newTag;
-    }
-    await DB.put('documents', doc);
-    const bodyEl = document.getElementById(`abody_${idx}`);
-    if (bodyEl) bodyEl.innerHTML = renderBalises(anonSeg.anonText, anonSeg.tagMap || {}, true);
-  }
+  const tok = state.activeTok;
   hidePopover();
+  const ctx = await loadTok(tok);
+  if (!ctx) return;
+  pushUndo(ctx.doc, ctx.project);
+  ctx.span.tag = `[${newTagId}]`;
+  ctx.span.src = 'manual';
+  delete ctx.span.review;
+  syncSeg(ctx.seg);
+  await DB.put('documents', ctx.doc);
+  rerenderSegs(ctx.doc, new Set([tok.idx]));
+  flashAutosave();
 }
 
-// ════════════════════════════════════════════════════════════════════
-// PSEUDO POPOVER
-// ════════════════════════════════════════════════════════════════════
 function pseudoClick(el, e) {
   e.stopPropagation();
   hidePopover();
   state.activePseudoEl = el;
-  // Store as plain object so restore survives any DOM re-render
-  state.activePseudoData = { pseudo: el.dataset.pseudo, original: el.dataset.original };
+  state.activeTok = tokFromEl(el);
   const orig = el.dataset.original;
   document.getElementById('pseudo-pop-orig').textContent = orig ? `"${orig}" → ` : '';
+  document.getElementById('pseudo-pop-validate').style.display = el.classList.contains('tag-review') ? '' : 'none';
   const inp = document.getElementById('pseudo-pop-input');
   inp.value = el.dataset.pseudo || '';
   const pop = document.getElementById('pseudo-pop');
-  pop.style.left = `${Math.min(e.clientX, window.innerWidth - 270)}px`;
-  pop.style.top = `${Math.min(e.clientY + 8, window.innerHeight - 120)}px`;
   pop.classList.remove('hidden');
+  const er = el.getBoundingClientRect();
+  placeFloating(pop, { left: e.clientX, top: er.top, bottom: er.bottom });
   setTimeout(() => { inp.select(); }, 40);
 }
 
+// Renaming a pseudonym applies to the whole project (the entity bank is project-wide)
 async function renamePseudo() {
-  const el = state.activePseudoEl;
-  if (!el) return;
+  const tok = state.activeTok;
   const newVal = document.getElementById('pseudo-pop-input').value.trim();
-  if (!newVal) return;
-
-  const segEl = el.closest('.seg');
-  const idx = segEl ? parseInt(segEl.dataset.idx) : -1;
-  if (idx < 0) return;
-
-  const oldToken = `{${el.dataset.pseudo}}`;
+  if (!tok || !newVal) return;
+  const oldToken = tok.tag;
   const newToken = `{${newVal}}`;
-  const esc = oldToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  hidePopover();
+  if (newToken === oldToken) return;
 
   const doc = await DB.get('documents', state.currentDocId);
   const project = await DB.get('projects', doc.projectId);
-  const snapAnon = doc.anonymized.map(s => ({ ...s, tagMap: { ...s.tagMap } }));
-  undoStack.push({ docId: doc.id, projectId: project.id, snapAnon, ebSnap: { ...project.entityBank }, cntSnap: { ...project.tagCounters } });
-
-  doc.anonymized.forEach((seg, i) => {
-    if (!seg.anonText?.includes(oldToken)) return;
-    seg.anonText = seg.anonText.replace(new RegExp(esc, 'g'), newToken);
-    if (seg.tagMap) {
-      const entry = Object.entries(seg.tagMap).find(([, t]) => t === oldToken);
-      if (entry) seg.tagMap[entry[0]] = newToken;
-    }
-    const bodyEl = document.getElementById(`abody_${i}`);
-    if (bodyEl) bodyEl.innerHTML = renderBalises(seg.anonText, seg.tagMap, true);
-  });
-
-  const ebEntry = Object.entries(project.entityBank || {}).find(([, v]) => v.tag === oldToken);
-  if (ebEntry) {
-    project.entityBank[ebEntry[0]] = { ...ebEntry[1], tag: newToken, pseudo: newVal };
-    await DB.put('projects', project);
-  }
-
-  await DB.put('documents', doc);
-  document.getElementById('pseudo-pop').classList.add('hidden');
-  state.activePseudoEl = null;
-  state.activePseudoData = null;
-  flashAutosave();
-}
-
-async function restorePseudo() {
-  try {
-    // Read from plain-object state first (immune to stale DOM refs)
-    const data = state.activePseudoData;
-    const el = state.activePseudoEl;
-    const pseudoVal = data?.pseudo || el?.dataset?.pseudo;
-    if (!pseudoVal) return;
-
-    const token = `{${pseudoVal}}`;
-    const esc = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    const doc = await DB.get('documents', state.currentDocId);
-    const project = await DB.get('projects', doc.projectId);
-    if (!doc?.anonymized) return;
-
-    // Resolve original: plain-object state → entityBank → tagMap scan
-    let originalText = data?.original || el?.dataset?.original || '';
-    if (!originalText) {
-      const ebEntry = Object.entries(project.entityBank || {}).find(([, v]) => v.tag === token);
-      if (ebEntry) originalText = ebEntry[0];
-    }
-    if (!originalText) {
-      for (const seg of doc.anonymized) {
-        const entry = Object.entries(seg.tagMap || {}).find(([, t]) => t === token);
-        if (entry) { originalText = entry[0]; break; }
-      }
-    }
-    if (!originalText) return;
-
-    const snapAnon = doc.anonymized.map(s => ({ ...s, tagMap: { ...s.tagMap } }));
-    undoStack.push({ docId: doc.id, projectId: project.id, snapAnon, ebSnap: { ...project.entityBank }, cntSnap: { ...project.tagCounters } });
-
-    doc.anonymized.forEach((seg, i) => {
-      if (!seg.anonText?.includes(token)) return;
-      seg.anonText = seg.anonText.replace(new RegExp(esc, 'g'), originalText);
-      if (seg.tagMap) delete seg.tagMap[originalText];
-      const bodyEl = document.getElementById(`abody_${i}`);
-      if (bodyEl) bodyEl.innerHTML = renderBalises(seg.anonText, seg.tagMap || {}, true);
+  pushUndo(doc, project);
+  const docs = (await DB.getByIndex('documents', 'projectId', project.id)).map(d => (d.id === doc.id ? doc : d));
+  for (const d of docs) {
+    ensureModel(d);
+    let changed = false;
+    d.anonymized.forEach(sg => {
+      let ch = false;
+      sg.spans.forEach(sp => { if (sp.tag === oldToken) { sp.tag = newToken; ch = true; } });
+      if (ch) { syncSeg(sg); changed = true; }
     });
-
-    if (project.entityBank?.[originalText]) {
-      delete project.entityBank[originalText];
-      await DB.put('projects', project);
-    }
-
-    await DB.put('documents', doc);
-    document.getElementById('pseudo-pop').classList.add('hidden');
-    state.activePseudoEl = null;
-    state.activePseudoData = null;
-    flashAutosave();
-  } catch (err) {
-    console.error('[restorePseudo]', err);
-    showToast('Erreur restauration — voir console');
+    if (changed || d === doc) await DB.put('documents', d);
   }
+  Object.values(project.entityBank || {}).forEach(info => bankTags(info).forEach(x => {
+    if (x.tag === oldToken) { x.tag = newToken; x.pseudo = newVal; }
+  }));
+  await DB.put('projects', project);
+  _currentEntityBank = project.entityBank || {};
+  rerenderSegs(doc, null);
+  flashAutosave();
+  writeProjectFile(project.id);
 }
 
 // ════════════════════════════════════════════════════════════════════
 // EXPORT
 // ════════════════════════════════════════════════════════════════════
-function askDocTitle(originalName) {
+function askDocTitle(originalName, { kind = 'interview', title = '' } = {}) {
   return new Promise(resolve => {
     state.modalCancelFn = () => resolve(null);
     const body = `
       <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px">${t('renameNote')}</p>
-      <input id="doc-title-input" class="input" placeholder="Ex: Entretien_1" style="width:100%;box-sizing:border-box">
-      <p style="font-size:.75rem;color:var(--faint);margin-top:6px">${t('renameOrig')} : <em>${escHtml(originalName)}</em></p>`;
+      <input id="doc-title-input" class="input" placeholder="Ex: Entretien_1" value="${escAttr(title)}" style="width:100%;box-sizing:border-box">
+      <p style="font-size:.75rem;color:var(--faint);margin-top:6px">${t('renameOrig')} : <em>${escHtml(originalName)}</em></p>
+      <label style="display:block;font-size:.8rem;color:var(--muted);margin:12px 0 4px">${t('kindLabel')}</label>
+      ${kindSelectHtml('doc-kind-input', kind)}`;
     showModal(t('renameTitle'), body, t('importBtn'), () => {
       const inp = document.getElementById('doc-title-input');
       const val = inp ? inp.value.trim() : '';
       if (!val) { if (inp) { inp.style.borderColor = 'var(--err)'; inp.focus(); } return; }
+      const k = document.getElementById('doc-kind-input')?.value || kind;
       state.modalCancelFn = null;
       closeModal();
-      resolve(val);
+      resolve({ title: val, kind: k });
     });
   });
 }
@@ -2596,8 +4164,8 @@ async function exportHtml() {
   const rows = doc.anonymized.map((seg, i) => {
     const orig = doc.segments[i];
     const spk = seg.anonSpeaker ? `<strong>${escHtml(seg.anonSpeaker)}</strong> ` : '';
-    const ts = orig.timestamp != null ? `<span style="color:#888;font-size:.8em">[${fmtTs(orig.timestamp)}]</span> ` : '';
-    const body = stripPseudo(seg.anonText || orig.text).replace(/\[([A-ZÉÈÀÙÎÏÔÂ_]+(?:_\d+)?)\]/g,
+    const ts = orig.timestamp != null ? `<span style="color:#888;font-size:.8em">[${escHtml(String(fmtTs(orig.timestamp)))}]</span> ` : '';
+    const body = escHtml(stripPseudo(seg.anonText || orig.text)).replace(/\[([A-ZÉÈÀÙÎÏÔÂ_]+(?:_\d+)?)\]/g,
       (_, tk) => `<mark style="background:${tagHtmlBg(tk)};border-radius:3px;padding:1px 4px;-webkit-print-color-adjust:exact;print-color-adjust:exact">[${tk}]</mark>`);
     return `<p style="margin:.4em 0">${spk}${ts}${body}</p>`;
   }).join('\n');
@@ -2621,8 +4189,8 @@ async function exportPdf() {
   const rows = doc.anonymized.map((seg, i) => {
     const orig = doc.segments[i];
     const spk = seg.anonSpeaker ? `<strong>${escHtml(seg.anonSpeaker)}</strong> ` : '';
-    const ts = orig.timestamp != null ? `<span style="color:#888;font-size:.8em">[${fmtTs(orig.timestamp)}]</span> ` : '';
-    const body = stripPseudo(seg.anonText || orig.text).replace(/\[([A-ZÉÈÀÙÎÏÔÂ_]+(?:_\d+)?)\]/g,
+    const ts = orig.timestamp != null ? `<span style="color:#888;font-size:.8em">[${escHtml(String(fmtTs(orig.timestamp)))}]</span> ` : '';
+    const body = escHtml(stripPseudo(seg.anonText || orig.text)).replace(/\[([A-ZÉÈÀÙÎÏÔÂ_]+(?:_\d+)?)\]/g,
       (_, tk) => `<mark style="background:${tagHtmlBg(tk)};border-radius:3px;padding:1px 4px;-webkit-print-color-adjust:exact;print-color-adjust:exact">[${tk}]</mark>`);
     return `<p style="margin:.5em 0">${spk}${ts}${body}</p>`;
   }).join('\n');
@@ -2748,7 +4316,7 @@ function showModal(titleText, bodyHtml, primaryLabel, primaryFn, danger = false)
 const PYNER_SETUP = {
   spacy: {
     title: 'spaCy NER — port 8772',
-    langModels: { fr: 'fr_core_news_lg', en: 'en_core_web_lg', de: 'de_core_news_lg' },
+    langModels: { fr: 'fr_core_news_lg', en: 'en_core_web_lg', de: 'de_core_news_lg', multi: 'xx_ent_wiki_sm' },
     steps: [
       { label: '2. Lancer le serveur', cmd: 'python3 ~/elide/spacy_ner.py' },
     ],
@@ -2760,6 +4328,7 @@ const PYNER_SETUP = {
       fr: 'Davlan/bert-base-multilingual-cased-ner-hrl (~700 MB)',
       de: 'Davlan/bert-base-multilingual-cased-ner-hrl (~700 MB)',
       en: 'dslim/bert-base-NER (~420 MB)',
+      multi: 'Davlan/bert-base-multilingual-cased-ner-hrl (~700 MB)',
     },
     steps: [
       { label: '1. Installer (une seule fois)', cmd: 'pip3 install transformers torch' },
@@ -2791,7 +4360,7 @@ function updateEngineSetup(engine) {
     const docLang = document.querySelector('input[name="doc-lang"]:checked')?.value || 'fr';
     const model = info.langModels[docLang] || info.langModels.fr;
     const installCmd = `pip3 install spacy && python3 -m spacy download ${model}`;
-    const langLabel = { fr: '🇫🇷 FR', en: '🇬🇧 EN', de: '🇩🇪 DE' };
+    const langLabel = { fr: '🇫🇷 FR', en: '🇬🇧 EN', de: '🇩🇪 DE', multi: '🌐 Multi' };
     setup.innerHTML = `
       <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-s);padding:12px;margin-top:2px;font-size:.82rem">
         <div style="font-weight:600;margin-bottom:10px">${info.title}</div>
@@ -2816,7 +4385,7 @@ function updateEngineSetup(engine) {
   } else if (engine === 'camembert') {
     const docLang = document.querySelector('input[name="doc-lang"]:checked')?.value || 'fr';
     const modelDesc = info.langModels[docLang] || info.langModels.fr;
-    const langLabel = { fr: '🇫🇷 FR', en: '🇬🇧 EN', de: '🇩🇪 DE' };
+    const langLabel = { fr: '🇫🇷 FR', en: '🇬🇧 EN', de: '🇩🇪 DE', multi: '🌐 Multi' };
     setup.innerHTML = `
       <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-s);padding:12px;margin-top:2px;font-size:.82rem">
         <div style="font-weight:600;margin-bottom:10px">${info.title}</div>
@@ -2888,7 +4457,7 @@ async function updateProjectServerStatus(project) {
     if (isPyNer) langSel.value = project.docLang || 'fr';
   }
   if (!isPyNer) { btn.style.display = 'none'; return; }
-  const langFlag = { fr: '🇫🇷', en: '🇬🇧', de: '🇩🇪' }[project.docLang || 'fr'] || '';
+  const langFlag = { fr: '🇫🇷', en: '🇬🇧', de: '🇩🇪', multi: '🌐' }[project.docLang || 'fr'] || '';
   lbl.textContent = { spacy: `spaCy ${langFlag}`, camembert: `HF NER ${langFlag}` }[engine];
   btn.style.display = '';
   dot.className = 'dot spin';
@@ -2978,6 +4547,7 @@ function showCreateProject() {
          <option value="fr">🇫🇷 Français</option>
          <option value="en">🇬🇧 English</option>
          <option value="de">🇩🇪 Deutsch</option>
+         <option value="multi">🌐 ${t('langMulti')}</option>
        </select>
      </div>`,
     t('createProject'), createProject);
@@ -2985,7 +4555,7 @@ function showCreateProject() {
 
 function showRenameProject(id, currentName) {
   showModal(t('rename') + ' — ' + currentName,
-    `<div class="form-field"><label>${t('projectName')}</label><input type="text" id="proj-name-input" value="${escHtml(currentName)}" autocomplete="off"></div>`,
+    `<div class="form-field"><label>${t('projectName')}</label><input type="text" id="proj-name-input" value="${escAttr(currentName)}" autocomplete="off"></div>`,
     t('save'), async () => {
       const name = document.getElementById('proj-name-input')?.value.trim();
       if (!name) return;
@@ -3007,7 +4577,7 @@ function confirmDeleteProject(id) {
 
 function showRenameDoc(id, currentTitle) {
   showModal(t('rename') + ' — ' + currentTitle,
-    `<div class="form-field"><label>${t('docName')}</label><input type="text" id="doc-name-input" value="${escHtml(currentTitle)}" autocomplete="off"></div>`,
+    `<div class="form-field"><label>${t('docName')}</label><input type="text" id="doc-name-input" value="${escAttr(currentTitle)}" autocomplete="off"></div>`,
     t('save'), async () => {
       const title = document.getElementById('doc-name-input')?.value.trim();
       if (!title) return;
@@ -3124,6 +4694,8 @@ let _personIndex = null;  // persons only (hint-name-person, red)
 let _placeIndex = null;   // places only (hint-name-place, green)
 let _nameIndexPromise = null;
 let _hintIgnoreList = new Set(JSON.parse(localStorage.getItem('elide_hint_ignore') || '[]'));
+let _currentEntityBank = {};  // set when doc is opened — pseudo colours and homonym detection
+let _currentDocLang = 'fr';   // set when doc is opened — used for tag display labels
 
 async function loadNameIndex() {
   if (_nameIndex) return _nameIndex;
@@ -3160,6 +4732,30 @@ function adjustFontSize(delta) {
   localStorage.setItem('elide_fontsize', String(next));
 }
 
+function updateReviewCounter() {
+  const n = document.querySelectorAll('#panel-anon .tag-review').length;
+  const btn = document.getElementById('ed-review-btn');
+  if (!btn) return;
+  btn.style.display = n ? '' : 'none';
+  document.getElementById('ed-review-count').textContent = n;
+}
+
+// Jump to the next tag awaiting review (after the last one visited) and open its popover
+function navReview() {
+  const marks = Array.from(document.querySelectorAll('#panel-anon .tag-review'));
+  if (!marks.length) return;
+  // Position key survives re-renders (validating a tag replaces its element)
+  const key = el => { const t = tokFromEl(el); return t ? t.idx * 1e7 + t.s : 0; };
+  const lastKey = state.lastReviewKey ?? -1;
+  const el = marks.find(m => key(m) > lastKey) || marks[0];
+  state.lastReviewKey = key(el);
+  el.scrollIntoView({ block: 'center' });
+  const r = el.getBoundingClientRect();
+  hideTagPicker();
+  const ev = { clientX: r.left, clientY: r.bottom, stopPropagation() {} };
+  if (el.dataset.pseudo != null) pseudoClick(el, ev); else showPopover(el, ev);
+}
+
 function navTag(dir) {
   const marks = Array.from(document.querySelectorAll('#panel-anon mark.tag'));
   if (!marks.length) return;
@@ -3189,9 +4785,7 @@ async function init() {
     navigate('home');
   } else {
     navigate('projects');
-    renderProjects();
   }
-  applyI18n();
 }
 
 document.addEventListener('DOMContentLoaded', init);

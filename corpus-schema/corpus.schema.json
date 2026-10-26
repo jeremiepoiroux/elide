@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "corpus.schema.json",
+  "title": "Corpus document / bundle (Rescribe -> Elide -> analysis tool)",
+  "description": "Shared envelope for the whole chain. Rules: (1) every tool MUST preserve unknown fields and the ext.<tool> namespaces it does not own; (2) ids (document, speaker, segment) are assigned once, at the first export, and never change; (3) only a 'sensitivity: anonymized|public' document may leave Elide towards the analysis tool; (4) the pseudonym key (real name <-> tag) is NEVER part of this format.",
+  "oneOf": [
+    { "$ref": "#/$defs/document" },
+    { "$ref": "#/$defs/bundle" }
+  ],
+  "$defs": {
+
+    "bundle": {
+      "type": "object",
+      "required": ["format", "schemaVersion", "documents"],
+      "properties": {
+        "format": { "const": "corpus-bundle" },
+        "schemaVersion": { "const": "1.0" },
+        "exportedAt": { "type": "string", "format": "date-time" },
+        "project": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "lang": { "enum": ["fr", "en", "de"] },
+            "studyTitle": { "type": "string" }
+          }
+        },
+        "documents": { "type": "array", "items": { "$ref": "#/$defs/document" } }
+      }
+    },
+
+    "document": {
+      "type": "object",
+      "required": ["format", "schemaVersion", "id", "kind", "sensitivity", "title", "segments", "provenance"],
+      "properties": {
+        "format": { "const": "corpus-doc" },
+        "schemaVersion": { "const": "1.0" },
+        "id": { "type": "string", "description": "Stable, e.g. d_<base36 time><rand>. Assigned by the first tool that exports it." },
+        "kind": {
+          "enum": ["interview", "fieldnote", "meeting", "reference", "other"],
+          "description": "interview/fieldnote/meeting/other = primary data (codable). reference = literature (context, not coded)."
+        },
+        "sensitivity": {
+          "enum": ["raw", "anonymized", "public"],
+          "description": "raw = contains real identities (Rescribe output). anonymized = Elide output, reviewed. public = published material (articles), never needs Elide."
+        },
+        "title": { "type": "string" },
+        "lang": { "enum": ["fr", "en", "de"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "meta": {
+          "type": "object",
+          "description": "Free but conventional keys. Mirrors Rescribe state.meta.",
+          "properties": {
+            "studyTitle": { "type": "string" },
+            "interviewTitle": { "type": "string" },
+            "date": { "type": "string", "description": "ISO date of the interview/observation" },
+            "mode": { "type": "string", "description": "e.g. visio, presentiel, telephone" },
+            "transcribedBy": { "type": "string" },
+            "custom": {
+              "type": "array",
+              "items": { "type": "object", "properties": { "label": { "type": "string" }, "value": { "type": "string" } } }
+            },
+            "bib": {
+              "type": "object",
+              "description": "Only for kind=reference. CSL-JSON subset (author, issued, title, container-title, DOI, ...)."
+            }
+          },
+          "additionalProperties": true
+        },
+        "speakers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "role", "label"],
+            "properties": {
+              "id": { "type": "string" },
+              "role": { "enum": ["interviewer", "interviewee", "other"] },
+              "label": { "type": "string", "description": "raw doc: real name. anonymized doc: pseudonym tag, e.g. [ENQUETE_1]." },
+              "color": { "type": "string" }
+            }
+          }
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "text"],
+            "properties": {
+              "id": { "type": "string", "description": "Stable, e.g. seg_0001. Never renumbered, even if segments are merged/split (new id for the new piece)." },
+              "speakerId": { "type": ["string", "null"] },
+              "t": { "type": ["number", "null"], "description": "Start time in seconds" },
+              "page": { "type": ["integer", "null"], "description": "Source page (PDF references, scans)" },
+              "text": { "type": "string", "description": "Content for the document's sensitivity level. In an anonymized doc this is the anonymized text and the raw text is ABSENT." },
+              "textHash": { "type": "string", "description": "sha256 (hex, first 16 chars) of text; lets downstream tools detect that offsets are stale." }
+            }
+          }
+        },
+        "entities": {
+          "type": "array",
+          "description": "Only in anonymized docs: tags present in the text, without their real value.",
+          "items": {
+            "type": "object",
+            "required": ["tag", "type"],
+            "properties": {
+              "tag": { "type": "string", "description": "e.g. [PERS_1]" },
+              "type": { "enum": ["PERS", "LIEU", "ORG", "DATE", "AUTRE"] },
+              "count": { "type": "integer" }
+            }
+          }
+        },
+        "review": {
+          "type": "object",
+          "description": "Human review gate. The analysis tool refuses to send a document to any LLM unless sensitivity=public or review.status=validated.",
+          "properties": {
+            "status": { "enum": ["none", "in_progress", "validated"] },
+            "validatedAt": { "type": "string", "format": "date-time" },
+            "coverage": { "type": "number", "description": "Share of segments confirmed by a human (0-1)" }
+          }
+        },
+        "provenance": {
+          "type": "array",
+          "description": "Append-only chain. Each tool appends one entry when it exports.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["tool", "version", "at"],
+            "properties": {
+              "tool": { "enum": ["rescribe", "elide", "analysis", "import"] },
+              "version": { "type": "string" },
+              "at": { "type": "string", "format": "date-time" },
+              "from": { "type": "string", "description": "Source file name" },
+              "note": { "type": "string", "description": "e.g. engine=camembert, model=qwen3:8b" }
+            }
+          }
+        },
+        "ext": {
+          "type": "object",
+          "description": "Tool-private namespaces: ext.rescribe, ext.elide, ext.analysis. Preserve what you don't own.",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

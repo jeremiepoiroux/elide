@@ -1,0 +1,54 @@
+{
+  "format": "corpus-bundle",
+  "schemaVersion": "1.0",
+  "exportedAt": "2026-09-30T10:00:00.000Z",
+  "project": { "id": "p_demo", "name": "Enquete demo", "lang": "fr", "studyTitle": "Travail et numerique" },
+  "documents": [
+    {
+      "format": "corpus-doc",
+      "schemaVersion": "1.0",
+      "id": "d_demo01",
+      "kind": "interview",
+      "sensitivity": "anonymized",
+      "title": "Entretien 01",
+      "lang": "fr",
+      "createdAt": "2026-09-12T09:00:00.000Z",
+      "meta": { "studyTitle": "Travail et numerique", "interviewTitle": "Entretien 01", "date": "2026-09-10", "mode": "visio", "custom": [] },
+      "speakers": [
+        { "id": "s_a1", "role": "interviewer", "label": "[ENQUETEUR_1]" },
+        { "id": "s_b2", "role": "interviewee", "label": "[PERS_1]" }
+      ],
+      "segments": [
+        { "id": "seg_0001", "speakerId": "s_a1", "t": 12, "text": "Pouvez-vous me parler de votre arrivee a [VILLE_1] ?", "textHash": "9f2c1a7b3d4e5f60" },
+        { "id": "seg_0002", "speakerId": "s_b2", "t": 25, "text": "Oui, j'ai commence chez [ORG_1] en 2019.", "textHash": "1b7e0c44aa93d2f8" }
+      ],
+      "entities": [
+        { "tag": "[VILLE_1]", "type": "LIEU", "count": 1 },
+        { "tag": "[ORG_1]", "type": "ORG", "count": 1 }
+      ],
+      "review": { "status": "validated", "validatedAt": "2026-09-20T15:30:00.000Z", "coverage": 1 },
+      "provenance": [
+        { "tool": "rescribe", "version": "x.y", "at": "2026-09-12T09:00:00.000Z", "from": "entretien01.mp3" },
+        { "tool": "elide", "version": "x.y", "at": "2026-09-20T15:31:00.000Z", "from": "entretien01.rescribe.json", "note": "engine=camembert" }
+      ],
+      "ext": {}
+    },
+    {
+      "format": "corpus-doc",
+      "schemaVersion": "1.0",
+      "id": "d_demo02",
+      "kind": "reference",
+      "sensitivity": "public",
+      "title": "Dupont (2019) - Le travail a distance",
+      "lang": "fr",
+      "meta": { "bib": { "author": [{ "family": "Dupont", "given": "A." }], "issued": { "date-parts": [[2019]] }, "title": "Le travail a distance" } },
+      "speakers": [],
+      "segments": [
+        { "id": "seg_0001", "page": 34, "text": "..." }
+      ],
+      "provenance": [
+        { "tool": "import", "version": "x.y", "at": "2026-09-25T08:00:00.000Z", "from": "dupont2019.pdf" }
+      ]
+    }
+  ]
+}

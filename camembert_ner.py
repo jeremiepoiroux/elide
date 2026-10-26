@@ -24,6 +24,7 @@ HF_MODELS = {
     "fr": "Davlan/bert-base-multilingual-cased-ner-hrl",
     "de": "Davlan/bert-base-multilingual-cased-ner-hrl",
     "en": "dslim/bert-base-NER",
+    "multi": "Davlan/bert-base-multilingual-cased-ner-hrl",
 }
 _pipelines = {}
 

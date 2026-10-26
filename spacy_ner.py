@@ -23,6 +23,7 @@ SPACY_MODELS = {
     "fr": "fr_core_news_lg",
     "en": "en_core_web_lg",
     "de": "de_core_news_lg",
+    "multi": "xx_ent_wiki_sm",  # multilingual (PER/LOC/ORG/MISC)
 }
 _nlp_cache = {}
 
@@ -40,7 +41,7 @@ def get_nlp(lang):
 
 # Pre-load French at startup
 get_nlp("fr")
-print("spaCy NER server → http://localhost:8772  (FR/EN/DE)")
+print("spaCy NER server → http://localhost:8772  (FR/EN/DE/multi)")
 
 LABEL_MAP = {"PER": "PER", "LOC": "LOC", "ORG": "ORG", "MISC": "MISC"}
 
